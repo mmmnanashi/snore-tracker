@@ -362,7 +362,14 @@ const MIN_VALID = 2 * 3600; // 分析に使うのは2時間以上の記録
 
 // Firebaseの設定（Firebaseコンソールの「プロジェクトの設定」→「マイアプリ」に表示される値）。
 // 公開されても問題ない値で、データを守るのはFirestoreのルールです。null のあいだはクラウド保存を使いません。
-const FIREBASE_CONFIG = null;
+const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyALCA9ovk4tIo9LWmshl5oqiY3m8pfV3sc',
+  authDomain: 'snore-tracker-46827.firebaseapp.com',
+  projectId: 'snore-tracker-46827',
+  storageBucket: 'snore-tracker-46827.firebasestorage.app',
+  messagingSenderId: '1085118344095',
+  appId: '1:1085118344095:web:ddc25045bede2c5b01ebaa'
+};
 const FIREBASE_SDK = 'https://www.gstatic.com/firebasejs/12.19.0/';
 let db, stream, actx, analyser, recorder, chunks = [], samples = [];
 let timer, sampleTimer, startTime, wakeLock = null;
