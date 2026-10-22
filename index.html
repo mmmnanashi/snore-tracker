@@ -167,6 +167,10 @@
   .ghost{background:none;border:1px solid var(--line);color:var(--text);border-radius:999px;padding:8px 16px;font-size:14px;cursor:pointer}
   .ghost:hover{border-color:var(--star)}
   #dataMsg.warn{color:var(--moon)}
+  .cloud{margin-top:14px;padding:14px 16px;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
+  .cloud-state{margin:4px 0 0;font-size:14px}
+  .cloud-state.warn{color:var(--moon)}
+  .cloud .data-actions{margin-top:10px;align-items:center}
 
   .foot{margin-top:40px;font-size:12px;color:var(--muted);text-align:center}
 
@@ -306,6 +310,16 @@
 
     <section id="dataSec">
       <h2>データの保存</h2>
+      <div class="cloud" id="cloudBox">
+        <h3>クラウドに自動保存</h3>
+        <p class="cloud-state" id="cloudState" role="status"></p>
+        <div class="data-actions">
+          <button type="button" class="ghost" id="cloudIn" hidden>Googleでログインして自動保存を始める</button>
+          <button type="button" class="ghost" id="cloudSync" hidden>今すぐ保存</button>
+          <button type="button" class="textbtn" id="cloudOut" hidden>ログアウト</button>
+        </div>
+        <p class="hint" id="cloudHint"></p>
+      </div>
       <div class="setting">
         <label for="audioDays">録音（音声）を残す期間</label>
         <select id="audioDays">
@@ -327,7 +341,7 @@
       <p class="hint" id="dataMsg" role="status"></p>
     </section>
 
-    <p class="foot">記録はこの端末のブラウザの中だけに保存され、外部には送信されません。</p>
+    <p class="foot" id="footNote">記録はこの端末のブラウザの中だけに保存され、外部には送信されません。</p>
   </div>
 
   <div id="panelAna" role="tabpanel" aria-labelledby="tabAna" hidden>
@@ -345,6 +359,11 @@ const $ = id => document.getElementById(id);
 const DB_NAME = 'snore-tracker', STORE = 'sessions';
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const MIN_VALID = 2 * 3600; // 分析に使うのは2時間以上の記録
+
+// Firebaseの設定（Firebaseコンソールの「プロジェクトの設定」→「マイアプリ」に表示される値）。
+// 公開されても問題ない値で、データを守るのはFirestoreのルールです。null のあいだはクラウド保存を使いません。
+const FIREBASE_CONFIG = null;
+const FIREBASE_SDK = 'https://www.gstatic.com/firebasejs/12.19.0/';
 let db, stream, actx, analyser, recorder, chunks = [], samples = [];
 let timer, sampleTimer, startTime, wakeLock = null;
 let viewing = null, audioURL = null, dimTimer = null;
@@ -383,6 +402,7 @@ const store = mode => db.transaction(STORE, mode).objectStore(STORE);
 const putSession = s => new Promise((res, rej) => { const q = store('readwrite').put(s); q.onsuccess = res; q.onerror = () => rej(q.error); });
 const getAllSessions = () => new Promise(res => { if (!db) return res([]); const q = store('readonly').getAll(); q.onsuccess = () => res(q.result); q.onerror = () => res([]); });
 const deleteSession = id => new Promise(res => { const q = store('readwrite').delete(id); q.onsuccess = res; });
+const getSession = id => new Promise(res => { const q = store('readonly').get(id); q.onsuccess = () => res(q.result); q.onerror = () => res(undefined); });
 
 /* ---------- 表示用の書式 ---------- */
 const pad = n => String(n).padStart(2, '0');
@@ -873,9 +893,10 @@ $('editFactors').addEventListener('click', () => {
   $('editHost').replaceChildren(buildFactorForm('e-', f, s.notes, (ff, notes) => {
     s.factors = ff;
     s.notes = notes.trim();
+    s.updatedAt = Date.now();
     renderNightFactors();
     clearTimeout(saveT);
-    saveT = setTimeout(() => { putSession(s).catch(() => {}); }, 400);
+    saveT = setTimeout(() => { putSession(s).then(() => scheduleSync(), () => {}); }, 400);
   }));
   $('editHost').hidden = false;
   $('editFactors').setAttribute('aria-expanded', 'true');
@@ -1030,8 +1051,10 @@ async function stop() {
   if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
 
   const thr = +$('threshold').value;
+  const now = Date.now();
   const session = {
-    id: Date.now(),
+    id: now,
+    updatedAt: now,
     start: startTime,
     duration: samples.length ? last(samples).t : 0,
     threshold: thr,
@@ -1058,6 +1081,7 @@ async function stop() {
   await loadList();
   showSession(session);
   updateUsage();
+  scheduleSync(1000);
 }
 
 // 寝ぼけて止めないよう、停止は4秒以内に2回タップしたときだけ
@@ -1088,8 +1112,10 @@ $('threshold').addEventListener('change', async e => {
   if (!viewing || recording()) return;
   viewing.threshold = +e.target.value;
   viewing.events = findEvents(viewing.samples, viewing.threshold);
+  viewing.updatedAt = Date.now();
   try { await putSession(viewing); } catch (err) {}
   await loadList();
+  scheduleSync();
 });
 
 /* ---------- これまでの夜 ---------- */
@@ -1149,9 +1175,11 @@ async function loadList() {
       }
       clearTimeout(delArm);
       await deleteSession(s.id);
+      queueCloudDelete(s.id);
       if (viewing && viewing.id === s.id) { viewing = null; hidePlayer(); renderNightFactors(); refreshView(); }
       loadList();
       updateUsage();
+      scheduleSync();
     });
 
     L.append(h('li', null, pick, del));
@@ -1234,7 +1262,7 @@ $('exportBtn').addEventListener('click', async () => {
   const payload = {
     app: 'snore-tracker', format: 1, exportedAt: new Date().toISOString(),
     nights: all.map(s => ({
-      id: s.id, start: s.start, threshold: s.threshold,
+      id: s.id, start: s.start, threshold: s.threshold, updatedAt: s.updatedAt || s.id,
       notes: s.notes || '', factors: s.factors || null, keepAudio: !!s.keepAudio,
       samples: encodeSamples(s.samples || [])
     }))
@@ -1278,6 +1306,7 @@ $('importFile').addEventListener('change', async e => {
         samples: smp, events: findEvents(smp, thr),
         notes: typeof n.notes === 'string' ? n.notes : '',
         factors: n.factors ? sanitizeFactors(n.factors) : null,
+        updatedAt: typeof n.updatedAt === 'number' ? n.updatedAt : Date.now(),
         keepAudio: !!n.keepAudio, blob: null, audioDeleted: true
       });
       added++;
@@ -1289,6 +1318,7 @@ $('importFile').addEventListener('change', async e => {
   dataMsg(parts.join('。') + '。', bad > 0);
   await loadList();
   updateUsage();
+  scheduleSync();
 });
 
 /* ---------- 分析 ---------- */
@@ -1513,6 +1543,203 @@ async function renderAnalysis() {
   host.replaceChildren(...out);
 }
 
+/* ---------- クラウド（Firebase）への自動保存 ---------- */
+// 送るのは数値・チェック項目・メモだけ。音声はこの端末から出さない。
+const cloud = { ready: false, failed: false, au: null, f: null, auth: null, fs: null, user: null, busy: false, again: false, error: '', authMsg: '', lastSync: ls.get('snore-cloud-last', 0) };
+const DELETES_KEY = 'snore-cloud-deletes';
+
+function queueCloudDelete(id) {
+  if (!FIREBASE_CONFIG) return;
+  const list = ls.get(DELETES_KEY, []);
+  if (!list.includes(id)) { list.push(id); ls.set(DELETES_KEY, list); }
+}
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej({ code: 'timeout' }), ms))]);
+
+function cloudErrorText(e) {
+  const c = (e && e.code) || '';
+  if (c === 'timeout' || c === 'unavailable' || !navigator.onLine) return 'クラウドにつながりませんでした。通信できるようになったら、自動でもう一度保存します。';
+  if (c === 'permission-denied') return 'Firebaseのルールで保存が許可されていません。Firestoreのルールに書いたメールアドレスが、ログインしたアカウントと同じか確認してください。';
+  if (c === 'resource-exhausted') return 'Firebaseの無料枠の上限に達しました。明日になると、また保存できます。';
+  return `クラウドに保存できませんでした（${c || 'エラー'}）。しばらくしてから「今すぐ保存」を押してください。`;
+}
+function authErrorText(e) {
+  const c = (e && e.code) || '';
+  if (c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request') return 'ログインを中断しました。';
+  if (c === 'auth/popup-blocked') return 'ログイン画面がブロックされました。ブラウザのポップアップの設定を確認して、もう一度押してください。';
+  if (c === 'auth/unauthorized-domain') return 'Firebaseの「承認済みドメイン」に mmmnanashi.github.io を追加してください。';
+  if (c === 'auth/operation-not-allowed') return 'Firebaseの「ログイン方法」でGoogleを有効にしてください。';
+  if (c === 'auth/network-request-failed') return '通信できませんでした。電波のよいところで、もう一度押してください。';
+  return `ログインできませんでした（${c || 'エラー'}）。`;
+}
+
+function renderCloud() {
+  let text = '', warn = false, hint = '';
+  $('cloudIn').hidden = !(cloud.ready && !cloud.user);
+  $('cloudSync').hidden = !cloud.user;
+  $('cloudSync').disabled = cloud.busy;
+  $('cloudOut').hidden = !cloud.user;
+  if (!FIREBASE_CONFIG) text = 'まだ設定されていません。今は、この端末の中にだけ保存されています。';
+  else if (cloud.failed) { text = 'クラウドの準備ができませんでした。通信できる状態で、ページを開き直してください。'; warn = true; }
+  else if (!cloud.ready) text = '準備しています…';
+  else if (!cloud.user) {
+    if (cloud.authMsg) { text = cloud.authMsg; warn = true; }
+    else text = 'ログインしていません。今は、この端末の中にだけ保存されています。';
+    hint = 'ログインすると、いびきの数値・チェック項目・メモが自動でクラウド（あなたのFirebase）に保存されます。音声は送りません。機種変更やブラウザのデータを消したあとも、同じアカウントでログインすれば戻せます。';
+  } else {
+    text = `${cloud.user.email || 'Googleアカウント'} でログイン中。`;
+    if (cloud.busy) text += '保存しています…';
+    else if (cloud.error) { text += cloud.error; warn = true; }
+    else if (cloud.lastSync) { const d = new Date(cloud.lastSync); text += `最後に保存したのは ${d.getMonth() + 1}/${d.getDate()} ${hm(cloud.lastSync)} です。`; }
+    hint = '記録を保存したり直したりすると、自動でクラウドにも保存されます。音声はこの端末の中だけです。';
+  }
+  $('cloudState').textContent = text;
+  $('cloudState').classList.toggle('warn', warn);
+  $('cloudHint').textContent = hint;
+  $('cloudHint').hidden = !hint;
+  $('footNote').textContent = cloud.user
+    ? '数値とメモは、この端末とクラウド（あなたのFirebase）に保存されます。音声はこの端末の中だけです。'
+    : '記録はこの端末のブラウザの中だけに保存され、外部には送信されません。';
+}
+
+async function initCloud() {
+  renderCloud();
+  if (!FIREBASE_CONFIG) return;
+  try {
+    const [a, au, f] = await Promise.all(['app', 'auth', 'firestore'].map(n => import(`${FIREBASE_SDK}firebase-${n}.js`)));
+    const app = a.initializeApp(FIREBASE_CONFIG);
+    cloud.au = au;
+    cloud.f = f;
+    cloud.auth = au.getAuth(app);
+    cloud.fs = f.getFirestore(app);
+    cloud.ready = true;
+    au.onAuthStateChanged(cloud.auth, user => {
+      cloud.user = user || null;
+      cloud.error = '';
+      renderCloud();
+      if (user) syncNow();
+    });
+  } catch (e) {
+    cloud.failed = true;
+  }
+  renderCloud();
+}
+
+$('cloudIn').addEventListener('click', () => {
+  if (!cloud.ready) return;
+  cloud.authMsg = '';
+  const provider = new cloud.au.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  // ポップアップが止められないよう、タップの処理の中ですぐに呼ぶ
+  cloud.au.signInWithPopup(cloud.auth, provider).catch(e => { cloud.authMsg = authErrorText(e); renderCloud(); });
+});
+$('cloudOut').addEventListener('click', () => { if (cloud.ready) cloud.au.signOut(cloud.auth).catch(() => {}); });
+$('cloudSync').addEventListener('click', () => syncNow());
+
+// 1秒ごとの音量を小さなバイナリにまとめる（前の値との秒の差はUint16、音量は1dB単位のInt8）
+function packSamples(d) {
+  const dt = new DataView(new ArrayBuffer(d.length * 2)), v = new Int8Array(d.length);
+  let prev = 0;
+  d.forEach((p, i) => {
+    dt.setUint16(i * 2, Math.min(65535, Math.max(0, p.t - prev)), true);
+    prev = p.t;
+    v[i] = Math.max(-128, Math.min(127, Math.round(p.db)));
+  });
+  return { dt: new Uint8Array(dt.buffer), db: new Uint8Array(v.buffer) };
+}
+function unpackSamples(dtU8, dbU8) {
+  const dv = new DataView(dtU8.buffer, dtU8.byteOffset, dtU8.byteLength);
+  const v = new Int8Array(dbU8.buffer, dbU8.byteOffset, dbU8.byteLength);
+  const n = Math.min(v.length, Math.floor(dtU8.byteLength / 2));
+  const out = [];
+  let t = 0;
+  for (let i = 0; i < n; i++) { t += dv.getUint16(i * 2, true); out.push({ t, db: v[i] }); }
+  return out;
+}
+const nightRef = id => cloud.f.doc(cloud.fs, 'users', cloud.user.uid, 'nights', String(id));
+
+let syncT = null;
+function scheduleSync(delay = 2000) {
+  if (!cloud.user) return;
+  clearTimeout(syncT);
+  syncT = setTimeout(syncNow, delay);
+}
+
+async function syncNow() {
+  if (!cloud.user || !db) return;
+  if (cloud.busy) { cloud.again = true; return; }
+  if (!navigator.onLine) { cloud.error = cloudErrorText({ code: 'unavailable' }); renderCloud(); return; }
+  cloud.busy = true;
+  cloud.error = '';
+  renderCloud();
+  const f = cloud.f, uid = cloud.user.uid;
+  const changed = new Set();
+  try {
+    // 1) この端末で消した夜を、クラウドからも消す
+    const dels = ls.get(DELETES_KEY, []);
+    for (const id of dels) await withTimeout(f.deleteDoc(nightRef(id)), 20000);
+    if (dels.length) ls.set(DELETES_KEY, ls.get(DELETES_KEY, []).filter(x => !dels.includes(x)));
+
+    // 2) クラウドで新しくなった夜を受け取る（別の端末で保存した夜や、消えてしまった記録の復元）
+    const pullKey = `snore-cloud-pull-${uid}`;
+    const since = ls.get(pullKey, 0);
+    const col = f.collection(cloud.fs, 'users', uid, 'nights');
+    const snap = await withTimeout(f.getDocs(since ? f.query(col, f.where('syncedAt', '>', f.Timestamp.fromMillis(since))) : col), 60000);
+    const pendingDel = new Set(ls.get(DELETES_KEY, []));
+    let maxSeen = since;
+    for (const ds of snap.docs) {
+      const d = ds.data();
+      if (d.syncedAt && d.syncedAt.toMillis) maxSeen = Math.max(maxSeen, d.syncedAt.toMillis());
+      if (typeof d.id !== 'number' || pendingDel.has(d.id) || !d.dt || !d.db) continue;
+      const cur = await getSession(d.id);
+      if (cur && (cur.updatedAt || cur.id) >= (d.updatedAt || 0)) continue;
+      const smp = unpackSamples(d.dt.toUint8Array(), d.db.toUint8Array());
+      const thr = typeof d.threshold === 'number' ? d.threshold : -35;
+      const s = Object.assign(cur || { blob: null, audioDeleted: true, keepAudio: false }, {
+        id: d.id, start: d.start, threshold: thr, samples: smp,
+        duration: smp.length ? last(smp).t : 0, events: findEvents(smp, thr),
+        notes: typeof d.notes === 'string' ? d.notes : '',
+        factors: d.factors ? sanitizeFactors(d.factors) : null,
+        updatedAt: d.updatedAt || 0, cloudSyncedAt: d.updatedAt || 0
+      });
+      await putSession(s);
+      changed.add(s.id);
+    }
+    ls.set(pullKey, maxSeen);
+
+    // 3) この端末でまだ送っていない夜を送る
+    for (const s of await getAllSessions()) {
+      const ver = s.updatedAt || s.id;
+      if ((s.cloudSyncedAt || 0) >= ver || !s.samples || s.samples.length < 2) continue;
+      const pk = packSamples(s.samples);
+      await withTimeout(f.setDoc(nightRef(s.id), {
+        v: 1, id: s.id, start: s.start, threshold: s.threshold,
+        notes: s.notes || '', factors: s.factors ? sanitizeFactors(s.factors) : null,
+        updatedAt: ver, dt: f.Bytes.fromUint8Array(pk.dt), db: f.Bytes.fromUint8Array(pk.db),
+        syncedAt: f.serverTimestamp()
+      }), 30000);
+      // 送っている間に直された夜は、次の回にもう一度送る
+      const fresh = await getSession(s.id);
+      if (fresh && (fresh.updatedAt || fresh.id) === ver) { fresh.cloudSyncedAt = ver; await putSession(fresh); }
+      if (viewing && viewing.id === s.id) viewing.cloudSyncedAt = ver;
+    }
+    cloud.lastSync = Date.now();
+    ls.set('snore-cloud-last', cloud.lastSync);
+  } catch (e) {
+    cloud.error = cloudErrorText(e);
+  } finally {
+    cloud.busy = false;
+    renderCloud();
+  }
+  if (changed.size) {
+    await loadList();
+    if (viewing && changed.has(viewing.id)) { const s = await getSession(viewing.id); if (s) showSession(s); }
+    if (!$('panelAna').hidden) renderAnalysis();
+    updateUsage();
+  }
+  if (cloud.again) { cloud.again = false; scheduleSync(500); }
+}
+addEventListener('online', () => scheduleSync(500));
+
 /* ---------- タブ ---------- */
 function showTab(name) {
   const ana = name === 'ana';
@@ -1533,6 +1760,7 @@ document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'visible') {
     if (recording() && !wakeLock) await requestWakeLock();
     startTwinkle();
+    scheduleSync(1500);
   } else {
     stopTwinkle();
   }
@@ -1568,6 +1796,7 @@ addEventListener('resize', () => {
   refreshView();
   await loadList();
   updateUsage();
+  initCloud();
   if (location.hash === '#analysis') showTab('ana');
   if (document.fonts) document.fonts.ready.then(refreshView);
 })();
