@@ -20,6 +20,7 @@
     --muted:#9ba4cc;
     --line:rgba(169,200,255,.16);
     --field:rgba(8,12,40,.6);
+    --surface:rgba(4,7,26,.5);
   }
   *{box-sizing:border-box}
   [hidden]{display:none !important}
@@ -35,18 +36,25 @@
   main{
     position:relative;z-index:1;
     max-width:520px;margin:0 auto;
-    padding:max(18px,env(safe-area-inset-top)) 16px calc(56px + env(safe-area-inset-bottom));
+    padding:max(14px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(56px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
   }
   h1{font-size:15px;font-weight:500;letter-spacing:.1em;color:var(--muted);margin:0}
-  h2{font-size:18px;font-weight:700;margin:0;letter-spacing:.02em}
+  h2{font-size:18px;font-weight:700;margin:0;letter-spacing:.02em;text-wrap:balance}
+  h3{font-size:15px;font-weight:700;margin:0}
   section{margin-top:40px}
   .hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
 
-  button,input,textarea{font:inherit}
-  button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--star);outline-offset:3px}
+  button,input,textarea,select{font:inherit}
+  button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--star);outline-offset:3px}
+
+  /* 上のバー */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .tabs{display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--field);border:1px solid var(--line)}
+  .tabs button{border:0;background:none;color:var(--muted);font-size:14px;padding:5px 16px;border-radius:999px;cursor:pointer}
+  .tabs button[aria-selected="true"]{background:var(--moon);color:#1a2050;font-weight:700}
 
   /* 月のボタン */
-  .hero{margin-top:12px;display:flex;flex-direction:column;align-items:center;padding:28px 0 4px}
+  .hero{margin-top:12px;display:flex;flex-direction:column;align-items:center;padding:24px 0 4px}
   .moon{
     position:relative;width:204px;height:204px;border-radius:50%;border:0;cursor:pointer;
     color:#1a2050;
@@ -80,20 +88,50 @@
   .status{margin:24px 0 0;font-size:14px;color:var(--muted);text-align:center;max-width:26em}
   .status.warn{color:var(--moon)}
 
-  /* 今夜の音 */
+  /* 寝る前のこと（チェック項目） */
+  .fform{display:flex;flex-direction:column;gap:14px;margin-top:12px}
+  fieldset{border:0;margin:0;padding:0;min-width:0}
+  legend{padding:0;font-size:13px;color:var(--muted)}
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .pill{position:relative;display:inline-flex}
+  .pill input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+  .pill span{padding:6px 13px;border-radius:999px;border:1px solid var(--line);background:var(--field);font-size:14px;color:var(--text);line-height:1.5}
+  .pill input:checked + span{background:rgba(244,235,200,.14);border-color:var(--moon);color:var(--moon)}
+  .pill input[type=checkbox]:checked + span::before{content:"✓ "}
+  .pill input:focus-visible + span{outline:2px solid var(--star);outline-offset:2px}
+  .room{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:6px}
+  .num{display:inline-flex;align-items:center;gap:6px;font-size:14px}
+  .num input{width:5.2em;font-size:16px;color:var(--text);background:var(--field);border:1px solid var(--line);border-radius:10px;padding:5px 8px;font-variant-numeric:tabular-nums}
+  .memo-label{font-size:13px;color:var(--muted)}
+  textarea{
+    display:block;width:100%;min-height:72px;margin-top:-8px;
+    font-size:16px;color:var(--text);
+    background:var(--field);border:1px solid var(--line);border-radius:14px;
+    padding:10px 12px;resize:vertical;
+  }
+  textarea::placeholder{color:rgba(155,164,204,.55)}
+
+  /* 夜の結果 */
   .night-head{margin-bottom:10px}
-  .stats{margin:2px 0 0;display:flex;gap:16px;font-size:13px;color:var(--muted);white-space:nowrap;min-height:4px}
-  .stats b{font-size:22px;font-weight:700;color:var(--text);margin:0 2px;font-variant-numeric:tabular-nums}
-  .stats .snore b{color:var(--snore)}
-  .graph-wrap{background:rgba(4,7,26,.5);border-radius:18px;padding:12px 12px 8px;border:1px solid rgba(169,200,255,.08)}
+  .nstats{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin:0 0 4px}
+  .nstats div{min-width:0}
+  .nstats dt{font-size:12px;color:var(--muted)}
+  .nstats dd{margin:0;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+  .nstats .main dd{font-size:26px;line-height:1.3;color:var(--snore)}
+  .graph-wrap{margin-top:14px;background:var(--surface);border-radius:18px;padding:12px 12px 8px;border:1px solid rgba(169,200,255,.08)}
   #graph{display:block;width:100%;height:190px;cursor:pointer;touch-action:manipulation}
   .axis{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-height:20px;margin-top:4px}
 
   .player{margin-top:14px}
   audio{width:100%;height:40px;display:block}
-  .memo-view{margin-top:12px;padding-left:12px;border-left:2px solid rgba(244,235,200,.5)}
-  .memo-view span{font-size:12px;color:var(--muted)}
-  .memo-view p{margin:0;font-size:14.5px;white-space:pre-wrap}
+  .player-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .textbtn{background:none;border:0;padding:4px 0;color:var(--star);font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+  .textbtn[aria-pressed="true"]{color:var(--moon)}
+
+  .night-factors{margin-top:18px;padding-left:12px;border-left:2px solid rgba(244,235,200,.5)}
+  .night-factors .label{font-size:12px;color:var(--muted)}
+  .night-factors p{margin:0;font-size:14.5px;white-space:pre-wrap}
+  .night-factors .textbtn{margin-top:4px}
 
   .threshold{margin-top:22px}
   .threshold label{display:flex;justify-content:space-between;font-size:14px}
@@ -104,15 +142,6 @@
   input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:rgba(169,200,255,.28)}
   input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--moon);border:0;box-shadow:0 0 12px rgba(244,235,200,.55)}
   .ends{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted)}
-
-  /* メモ */
-  textarea{
-    display:block;width:100%;min-height:88px;margin-top:10px;
-    font-size:16px;color:var(--text);
-    background:var(--field);border:1px solid var(--line);border-radius:14px;
-    padding:10px 12px;resize:vertical;
-  }
-  textarea::placeholder{color:rgba(155,164,204,.55)}
 
   /* これまでの夜 */
   .history ul{list-style:none;margin:12px 0 0;padding:0}
@@ -129,7 +158,67 @@
   .del:hover,.del.armed{color:var(--snore)}
   .del.armed{font-weight:700}
 
+  /* データの保存 */
+  .setting{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;flex-wrap:wrap}
+  .setting label{font-size:14px}
+  select{font-size:16px;color:var(--text);background:var(--field);border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+  .usage{margin:14px 0 0;font-size:13.5px}
+  .data-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+  .ghost{background:none;border:1px solid var(--line);color:var(--text);border-radius:999px;padding:8px 16px;font-size:14px;cursor:pointer}
+  .ghost:hover{border-color:var(--star)}
+  #dataMsg.warn{color:var(--moon)}
+
   .foot{margin-top:40px;font-size:12px;color:var(--muted);text-align:center}
+
+  /* 分析 */
+  .ana-intro{margin-top:28px}
+  .ana-intro p{margin:8px 0 0;font-size:14.5px}
+  .lead{font-size:15px;margin:10px 0 0}
+  .lead b{color:var(--snore);font-size:20px;font-variant-numeric:tabular-nums}
+  .chart{margin-top:30px}
+  .bars{position:relative;display:flex;align-items:flex-end;gap:2px;height:140px;border-bottom:1px solid var(--line)}
+  .bar{flex:1;min-width:0;height:100%;display:flex;align-items:flex-end;justify-content:center;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .bar i{display:block;width:100%;max-width:26px;background:var(--snore);opacity:.8;border-radius:4px 4px 0 0}
+  .bar[aria-pressed="true"] i{opacity:1;box-shadow:0 0 0 2px var(--moon)}
+  .bar:focus-visible{outline:2px solid var(--star);outline-offset:2px}
+  .gridline{position:absolute;left:0;right:0;border-top:1px solid rgba(169,200,255,.1);pointer-events:none}
+  .gridline span{position:absolute;left:0;bottom:2px;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .avg{position:absolute;left:0;right:0;border-top:1px dashed var(--moon);pointer-events:none}
+  .avg span{position:absolute;right:0;bottom:2px;font-size:11px;color:var(--moon);background:rgba(5,8,23,.7);padding:0 4px;border-radius:4px}
+  .xlabels{display:flex;gap:2px;margin-top:4px;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .xlabels span{flex:1;min-width:0;text-align:center;white-space:nowrap;overflow:visible}
+  .readout{margin:8px 0 0;font-size:13.5px;min-height:1.65em}
+  .readout .textbtn{margin-left:6px;padding:0}
+
+  .cmp{padding:14px 0 12px;border-top:1px solid var(--line)}
+  .cmp:last-of-type{border-bottom:1px solid var(--line)}
+  .cmp-list{margin-top:12px}
+  .cmp-head{display:flex;justify-content:space-between;align-items:center;gap:6px 10px;flex-wrap:wrap}
+  .cmp-name{font-weight:700;font-size:14.5px}
+  .chip{font-size:12px;padding:1px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+  .chip.up{color:var(--snore);border-color:rgba(255,143,163,.55)}
+  .chip.down{color:var(--star);border-color:rgba(169,200,255,.55)}
+  .cmp-row{display:grid;grid-template-columns:8.6em 1fr 3.4em;align-items:center;gap:8px;margin-top:7px;font-size:12.5px}
+  .cmp-row .who{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .track{height:10px;border-radius:5px;background:rgba(169,200,255,.08);overflow:hidden}
+  .fill{display:block;height:100%;border-radius:0 5px 5px 0}
+  .fill.with{background:var(--snore)}
+  .fill.without{background:rgba(169,200,255,.5)}
+  .cmp-row .val{text-align:right;font-variant-numeric:tabular-nums}
+
+  .tips{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:14px}
+  .tips li{padding-left:14px;border-left:2px solid var(--line)}
+  .tips li.mine{border-left-color:var(--snore)}
+  .tips li.good{border-left-color:var(--star)}
+  .tips b{display:block;font-size:14.5px}
+  .tips p{margin:2px 0 0;font-size:13.5px;color:var(--muted)}
+  .subhead{margin-top:24px}
+
+  .notice{margin-top:12px;padding:14px 16px;border-radius:16px;background:rgba(244,235,200,.06);border:1px solid rgba(244,235,200,.28)}
+  .notice p{margin:0;font-size:14px}
+  .notice ul{margin:8px 0 0;padding-left:1.2em;font-size:14px}
+  .notice li{margin-top:2px}
+  .notice .hint{margin-top:10px}
 
   /* 録音中の暗い画面 */
   #dim{
@@ -151,53 +240,99 @@
 <canvas id="sky" aria-hidden="true"></canvas>
 
 <main>
-  <header><h1>いびきトラッカー</h1></header>
+  <header class="top">
+    <h1>いびきトラッカー</h1>
+    <nav class="tabs" role="tablist" aria-label="画面の切り替え">
+      <button type="button" role="tab" id="tabRec" aria-controls="panelRec" aria-selected="true">録音</button>
+      <button type="button" role="tab" id="tabAna" aria-controls="panelAna" aria-selected="false">分析</button>
+    </nav>
+  </header>
 
-  <section class="hero">
-    <button id="moon" class="moon" aria-label="録音を始める">
-      <span class="moon-main" id="moonMain">録音開始</span>
-      <span class="moon-sub" id="moonSub">枕元に置いてタップ</span>
-    </button>
-    <p class="status" id="status" role="status">充電しながら枕元に置き、月をタップして録音します</p>
-  </section>
+  <div id="panelRec" role="tabpanel" aria-labelledby="tabRec">
+    <section class="hero">
+      <button id="moon" class="moon" aria-label="録音を始める">
+        <span class="moon-main" id="moonMain">録音開始</span>
+        <span class="moon-sub" id="moonSub">枕元に置いてタップ</span>
+      </button>
+      <p class="status" id="status" role="status">充電しながら枕元に置き、月をタップして録音します</p>
+    </section>
 
-  <section id="nightSec">
-    <div class="night-head">
-      <h2 id="graphTitle">今夜の音</h2>
-      <p class="stats"><span class="snore" id="statCount"></span><span id="statTotal"></span></p>
-    </div>
-    <div class="graph-wrap">
-      <canvas id="graph" role="img" aria-label="夜間の音量グラフ"></canvas>
-      <div class="axis"><span id="axisStart"></span><span id="axisEnd"></span></div>
-    </div>
+    <section id="tonightSec">
+      <h2>寝る前のこと</h2>
+      <p class="hint">あてはまるものを選んでください。録音を止めると、この夜の記録と一緒に保存されます。毎晩つけておくと、分析で「いびきと関係がありそうなこと」がわかります。</p>
+      <div id="tonightForm"></div>
+    </section>
 
-    <div class="player" id="player" hidden>
-      <audio id="audio" controls preload="metadata"></audio>
-      <p class="hint">グラフをタップすると、その時刻から再生します</p>
-      <div class="memo-view" id="memoWrap" hidden><span>寝る前のメモ</span><p id="memoView"></p></div>
-    </div>
+    <section id="nightSec">
+      <div class="night-head"><h2 id="graphTitle">今夜の音</h2></div>
+      <dl class="nstats" id="nightStats" hidden></dl>
+      <p class="hint" id="ratioHint" hidden>いびきの割合は、録音していた時間のうち、いびき候補の音が出ていた時間の割合です。</p>
+      <p class="hint" id="shortNote" hidden>2時間未満の記録なので、分析には含めていません。</p>
+      <div class="graph-wrap">
+        <canvas id="graph" role="img" aria-label="夜間の音量グラフ"></canvas>
+        <div class="axis"><span id="axisStart"></span><span id="axisEnd"></span></div>
+      </div>
 
-    <div class="threshold">
-      <label for="threshold">判定ライン <output id="thVal">-35 dB</output></label>
-      <input type="range" id="threshold" min="-60" max="-10" value="-35">
-      <div class="ends"><span>小さな音も拾う</span><span>大きな音だけ</span></div>
-      <p class="hint">点線より大きい音が2秒以上続くと、いびき候補として赤く色がつきます</p>
-    </div>
-  </section>
+      <div class="player" id="player" hidden>
+        <audio id="audio" controls preload="metadata"></audio>
+        <div class="player-row">
+          <p class="hint">グラフをタップすると、その時刻から再生します</p>
+          <button type="button" class="textbtn" id="keepAudio" aria-pressed="false">この夜の録音を残す</button>
+        </div>
+      </div>
+      <p class="hint" id="audioGone" hidden>この夜の音声は、保存期間を過ぎたため削除しました。グラフと数値は残っています。</p>
 
-  <section>
-    <h2><label for="notes">寝る前のメモ</label></h2>
-    <textarea id="notes" placeholder="室温25度、ビール1杯、少し鼻づまり など"></textarea>
-    <p class="hint">録音を止めると、この夜の記録と一緒に保存されます</p>
-  </section>
+      <div class="night-factors" id="nightFactors" hidden>
+        <span class="label">この夜のこと</span>
+        <p id="factorText"></p>
+        <p id="memoView" hidden></p>
+        <button type="button" class="textbtn" id="editFactors" aria-expanded="false">チェック項目を直す</button>
+        <div id="editHost" hidden></div>
+      </div>
 
-  <section class="history">
-    <h2>これまでの夜</h2>
-    <p class="hint" id="emptyList">まだ記録がありません。今夜、月をタップして録音してみてください。</p>
-    <ul id="list"></ul>
-  </section>
+      <div class="threshold">
+        <label for="threshold">判定ライン <output id="thVal">-35 dB</output></label>
+        <input type="range" id="threshold" min="-60" max="-10" value="-35">
+        <div class="ends"><span>小さな音も拾う</span><span>大きな音だけ</span></div>
+        <p class="hint">点線より大きい音が2秒以上続くと、いびき候補として赤く色がつきます</p>
+      </div>
+    </section>
 
-  <p class="foot">記録はこの端末のブラウザの中だけに保存され、外部には送信されません。</p>
+    <section class="history">
+      <h2>これまでの夜</h2>
+      <p class="hint" id="emptyList">まだ記録がありません。今夜、月をタップして録音してみてください。</p>
+      <ul id="list"></ul>
+    </section>
+
+    <section id="dataSec">
+      <h2>データの保存</h2>
+      <div class="setting">
+        <label for="audioDays">録音（音声）を残す期間</label>
+        <select id="audioDays">
+          <option value="3">3日</option>
+          <option value="7">7日</option>
+          <option value="14">14日</option>
+          <option value="30">30日</option>
+          <option value="0">ずっと残す</option>
+        </select>
+      </div>
+      <p class="hint">期間を過ぎた夜は、音声だけを消します。グラフ、いびきの割合、チェック項目などの数値はずっと残ります。「この夜の録音を残す」にした夜の音声は消しません。</p>
+      <p class="usage" id="usage"></p>
+      <div class="data-actions">
+        <button type="button" class="ghost" id="exportBtn">バックアップを保存</button>
+        <button type="button" class="ghost" id="importBtn">バックアップを読み込む</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
+      </div>
+      <p class="hint">バックアップには数値とメモが入ります（音声は入りません）。ブラウザのデータを消す前や、機種変更のときに使ってください。</p>
+      <p class="hint" id="dataMsg" role="status"></p>
+    </section>
+
+    <p class="foot">記録はこの端末のブラウザの中だけに保存され、外部には送信されません。</p>
+  </div>
+
+  <div id="panelAna" role="tabpanel" aria-labelledby="tabAna" hidden>
+    <div id="anaContent"></div>
+  </div>
 </main>
 
 <div id="dim" hidden>
@@ -209,12 +344,33 @@
 const $ = id => document.getElementById(id);
 const DB_NAME = 'snore-tracker', STORE = 'sessions';
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const MIN_VALID = 2 * 3600; // 分析に使うのは2時間以上の記録
 let db, stream, actx, analyser, recorder, chunks = [], samples = [];
 let timer, sampleTimer, startTime, wakeLock = null;
 let viewing = null, audioURL = null, dimTimer = null;
 
 const recording = () => !!recorder && recorder.state === 'recording';
 const last = arr => arr[arr.length - 1];
+
+/* ---------- 小さな道具 ---------- */
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  if (props) for (const [k, v] of Object.entries(props)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'style') el.style.cssText = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k in el) el[k] = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) el.append(c);
+  return el;
+}
+const ls = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
 
 /* ---------- 保存（IndexedDB・端末内のみ） ---------- */
 const openDB = () => new Promise((res, rej) => {
@@ -225,25 +381,31 @@ const openDB = () => new Promise((res, rej) => {
 });
 const store = mode => db.transaction(STORE, mode).objectStore(STORE);
 const putSession = s => new Promise((res, rej) => { const q = store('readwrite').put(s); q.onsuccess = res; q.onerror = () => rej(q.error); });
-const getAllSessions = () => new Promise(res => { const q = store('readonly').getAll(); q.onsuccess = () => res(q.result); q.onerror = () => res([]); });
+const getAllSessions = () => new Promise(res => { if (!db) return res([]); const q = store('readonly').getAll(); q.onsuccess = () => res(q.result); q.onerror = () => res([]); });
 const deleteSession = id => new Promise(res => { const q = store('readwrite').delete(id); q.onsuccess = res; });
 
 /* ---------- 表示用の書式 ---------- */
 const pad = n => String(n).padStart(2, '0');
 const clock = sec => `${pad(Math.floor(sec / 3600))}:${pad(Math.floor(sec % 3600 / 60))}:${pad(sec % 60)}`;
 const durJa = sec => {
-  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
-  if (h) return `${h}時間${m}分`;
+  sec = Math.round(sec);
+  const hh = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  if (hh) return `${hh}時間${m}分`;
   if (m) return `${m}分${s ? s + '秒' : ''}`;
   return `${s}秒`;
 };
+const pct = r => r > 0 && r < .005 ? '1%未満' : `${Math.round(r * 100)}%`;
 const hm = ms => { const d = new Date(ms); return `${d.getHours()}:${pad(d.getMinutes())}`; };
 const WD = '日月火水木金土';
-const nightLabel = ms => {
+const nightDate = ms => {
   const d = new Date(ms);
   if (d.getHours() < 12) d.setDate(d.getDate() - 1); // 深夜0時以降に始めた録音は前日の夜として扱う
-  return `${d.getMonth() + 1}月${d.getDate()}日（${WD[d.getDay()]}）の夜`;
+  return d;
 };
+const nightLabel = ms => { const d = nightDate(ms); return `${d.getMonth() + 1}月${d.getDate()}日（${WD[d.getDay()]}）の夜`; };
+const shortDate = ms => { const d = nightDate(ms); return `${d.getMonth() + 1}/${d.getDate()}`; };
+const fmtBytes = b => b < 1e6 ? `${Math.max(1, Math.round(b / 1e3))}KB` : b < 1e9 ? `${Math.round(b / 1e6)}MB` : `${(b / 1e9).toFixed(1)}GB`;
+const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
 
 /* ---------- 計算 ---------- */
 const rmsDb = buf => {
@@ -254,14 +416,71 @@ const rmsDb = buf => {
 // いびき候補：しきい値以上が2秒以上続いた区間
 const findEvents = (data, thr) => {
   const ev = []; let run = null;
+  const close = () => { if (run && run.n >= 2) ev.push(run); run = null; };
   for (const s of data) {
-    if (s.db >= thr) { if (!run) run = { start: s.t, end: s.t }; run.end = s.t; }
-    else if (run) { if (run.end - run.start + 1 >= 2) ev.push(run); run = null; }
+    if (s.db >= thr) { if (!run) run = { start: s.t, end: s.t, n: 0 }; run.end = s.t; run.n++; }
+    else close();
   }
-  if (run && run.end - run.start + 1 >= 2) ev.push(run);
+  close();
   return ev;
 };
-const eventTotal = ev => ev.reduce((a, e) => a + (e.end - e.start + 1), 0);
+const eventTotal = ev => ev.reduce((a, e) => a + (e.n || (e.end - e.start + 1)), 0);
+
+// 1夜分の数値をまとめて計算する
+const statsCache = new Map();
+function nightStats(s, thr = s.threshold, useCache = true) {
+  const d = s.samples || [];
+  const key = `${s.id}:${thr}:${d.length}`;
+  if (useCache && statsCache.has(key)) return statsCache.get(key);
+
+  const ev = findEvents(d, thr);
+  const measured = d.length;
+  const snoreSec = eventTotal(ev);
+
+  // 静かなときの音の大きさ（中央値）
+  const step = Math.max(1, Math.floor(d.length / 3000));
+  const sub = [];
+  for (let i = 0; i < d.length; i += step) sub.push(d[i].db);
+  sub.sort((a, b) => a - b);
+  const baseline = sub.length ? sub[Math.floor(sub.length / 2)] : -90;
+
+  // 時間帯ごとの集計と、いびきの大きさ
+  const hourRec = new Array(24).fill(0), hourSnore = new Array(24).fill(0);
+  const st = new Date(s.start);
+  const h0 = st.getHours() + st.getMinutes() / 60 + st.getSeconds() / 3600;
+  let ei = 0, loudSum = 0, loudN = 0;
+  for (const p of d) {
+    const hr = Math.floor(h0 + p.t / 3600) % 24;
+    hourRec[hr]++;
+    while (ei < ev.length && ev[ei].end < p.t) ei++;
+    if (ei < ev.length && p.t >= ev[ei].start && p.db >= thr) { hourSnore[hr]++; loudSum += p.db; loudN++; }
+  }
+
+  // 30秒以内の切れ目はつなげて「連続したいびき」とみなす
+  let longest = 0, cur = null;
+  for (const e of ev) {
+    if (cur && e.start - cur.end <= 30) cur.end = e.end;
+    else { if (cur) longest = Math.max(longest, cur.end - cur.start + 1); cur = { start: e.start, end: e.end }; }
+  }
+  if (cur) longest = Math.max(longest, cur.end - cur.start + 1);
+
+  let peakHour = null, peakR = 0;
+  for (let i = 0; i < 24; i++) {
+    if (hourRec[i] < 900) continue; // 15分以上録音した時間帯だけ
+    const r = hourSnore[i] / hourRec[i];
+    if (r > peakR) { peakR = r; peakHour = i; }
+  }
+
+  const res = {
+    thr, measured, count: ev.length, snoreSec,
+    ratio: measured ? snoreSec / measured : 0,
+    baseline, loud: loudN ? loudSum / loudN - baseline : null,
+    longest, hourRec, hourSnore, peakHour, peakR,
+    valid: measured >= MIN_VALID
+  };
+  if (useCache) statsCache.set(key, res);
+  return res;
+}
 
 // 長い録音でも描画が重くならないよう、画面の幅に合わせて間引く（各区間の最大値を使う）
 const bucket = (data, cols) => {
@@ -275,6 +494,84 @@ const bucket = (data, cols) => {
   }
   return out;
 };
+
+/* ---------- チェック項目 ---------- */
+const ALCOHOL = ['飲まない', '少し', 'たくさん'];
+const BOOL_FACTORS = [
+  { key: 'lateMeal', label: '寝る3時間以内に食事', short: '寝る前の食事', night: '寝る3時間以内に食事をした夜', kind: 'risk' },
+  { key: 'nasal', label: '鼻づまり・花粉・かぜ', short: '鼻づまり', night: '鼻づまり・花粉・かぜがあった夜', kind: 'risk' },
+  { key: 'tired', label: 'いつもより疲れている', short: '疲れ', night: 'いつもより疲れていた夜', kind: 'risk' },
+  { key: 'sedative', label: '眠くなる薬を飲んだ', short: '眠くなる薬', night: '眠くなる薬を飲んだ夜', kind: 'risk' },
+  { key: 'side', label: '横向きで寝る工夫', short: '横向き寝', night: '横向きで寝る工夫をした夜', kind: 'try' },
+  { key: 'nasalAid', label: '鼻腔テープ・点鼻薬', short: '鼻腔テープ・点鼻薬', night: '鼻腔テープ・点鼻薬を使った夜', kind: 'try' },
+  { key: 'humidifier', label: '加湿器', short: '加湿器', night: '加湿器をつけた夜', kind: 'try' }
+];
+const emptyFactors = () => ({ alcohol: 0, lateMeal: false, nasal: false, tired: false, sedative: false, side: false, nasalAid: false, humidifier: false, temp: null, humidity: null });
+function sanitizeFactors(f) {
+  const o = emptyFactors();
+  if (!f || typeof f !== 'object') return o;
+  if ([0, 1, 2].includes(f.alcohol)) o.alcohol = f.alcohol;
+  for (const k of BOOL_FACTORS) o[k.key] = f[k.key] === true;
+  for (const k of ['temp', 'humidity']) o[k] = typeof f[k] === 'number' && isFinite(f[k]) ? f[k] : null;
+  return o;
+}
+function factorSummary(f) {
+  if (!f) return null;
+  const items = [];
+  if (f.alcohol) items.push(`お酒（${ALCOHOL[f.alcohol]}）`);
+  for (const k of BOOL_FACTORS) if (f[k.key]) items.push(k.short);
+  if (f.temp != null) items.push(`室温${f.temp}℃`);
+  if (f.humidity != null) items.push(`湿度${f.humidity}%`);
+  return items;
+}
+
+function buildFactorForm(prefix, f, notes, onChange) {
+  const wrap = h('div', { class: 'fform' });
+  let notesEl;
+  const emit = () => onChange(f, notesEl.value);
+  const group = legend => { const p = h('div', { class: 'pills' }); wrap.append(h('fieldset', null, h('legend', null, legend), p)); return p; };
+  const pill = (parent, type, name, id, text, checked, handler) => {
+    const inp = h('input', { type, name, id, checked, onchange: handler });
+    parent.append(h('label', { class: 'pill' }, inp, h('span', null, text)));
+  };
+
+  const pa = group('お酒');
+  ALCOHOL.forEach((t, i) => pill(pa, 'radio', prefix + 'alcohol', `${prefix}alc${i}`, t, f.alcohol === i, () => { f.alcohol = i; emit(); }));
+  const pr = group('あてはまるもの');
+  const pt = group('試した対策');
+  for (const k of BOOL_FACTORS) {
+    pill(k.kind === 'try' ? pt : pr, 'checkbox', prefix + k.key, prefix + k.key, k.label, !!f[k.key], e => { f[k.key] = e.target.checked; emit(); });
+  }
+
+  const room = h('div', { class: 'room' });
+  wrap.append(h('fieldset', null, h('legend', null, '寝室（わかれば）'), room));
+  const num = (key, text, unit, min, max, step) => {
+    const inp = h('input', { type: 'number', id: prefix + key, inputMode: 'decimal', step, min, max, value: f[key] ?? '' });
+    inp.addEventListener('input', () => {
+      const v = parseFloat(inp.value);
+      f[key] = Number.isFinite(v) && v >= min && v <= max ? v : null;
+      emit();
+    });
+    room.append(h('label', { class: 'num', htmlFor: prefix + key }, text, inp, h('span', null, unit)));
+  };
+  num('temp', '室温', '℃', 0, 45, '0.5');
+  num('humidity', '湿度', '%', 0, 100, '1');
+
+  notesEl = h('textarea', { id: prefix + 'notes', placeholder: '気になったこと、いつもと違ったこと など', value: notes || '' });
+  notesEl.addEventListener('input', emit);
+  wrap.append(h('label', { class: 'memo-label', htmlFor: prefix + 'notes' }, 'メモ'), notesEl);
+  return wrap;
+}
+
+// 今夜の入力は、録音を止めるまで下書きとして残しておく
+let tonight = ls.get('snore-draft', null) || {};
+tonight = { factors: sanitizeFactors(tonight.factors), notes: typeof tonight.notes === 'string' ? tonight.notes : '' };
+function mountTonightForm() {
+  $('tonightForm').replaceChildren(buildFactorForm('t-', tonight.factors, tonight.notes, (f, notes) => {
+    tonight.notes = notes;
+    ls.set('snore-draft', tonight);
+  }));
+}
 
 /* ---------- キャンバス ---------- */
 function sizeCanvas(c, cssH) {
@@ -450,22 +747,37 @@ function drawGraph() {
   }
 }
 
-function showStats(data, thr) {
-  if (data.length < 2) { $('statCount').textContent = ''; $('statTotal').textContent = ''; return; }
-  const ev = findEvents(data, thr);
-  $('statCount').innerHTML = `<b>${ev.length}</b>回`;
-  $('statTotal').innerHTML = `合計 <b>${durJa(eventTotal(ev))}</b>`;
+function renderNightStats(st, live) {
+  const el = $('nightStats');
+  const show = !!st && st.measured >= 2;
+  el.hidden = !show;
+  $('ratioHint').hidden = !show;
+  $('shortNote').hidden = !(show && !live && !st.valid);
+  if (!show) return;
+  const rows = [
+    ['いびきの割合', pct(st.ratio), 'main'],
+    ['いびきの時間', durJa(st.snoreSec)],
+    ['いびき候補', `${st.count}回`],
+    ['最長の連続', st.longest ? durJa(st.longest) : 'なし'],
+    ['大きさ', st.loud != null ? `静かなときより +${Math.max(0, Math.round(st.loud))}dB` : 'ー'],
+    ['多かった時間帯', st.peakHour != null && st.peakR > 0 ? `${st.peakHour}時台` : 'ー']
+  ];
+  el.replaceChildren(...rows.map(([k, v, cls]) => h('div', { class: cls }, h('dt', null, k), h('dd', null, v))));
 }
 
 function refreshView() {
   const data = viewing ? viewing.samples : samples;
   const thr = +$('threshold').value;
   drawGraph();
-  showStats(data, thr);
-  const st = viewing ? viewing.start : startTime;
-  if (data.length > 1 && st) {
-    $('axisStart').textContent = hm(st);
-    $('axisEnd').textContent = hm(st + last(data).t * 1000);
+  let st = null;
+  if (data.length >= 2) {
+    st = viewing ? nightStats(viewing, thr) : nightStats({ id: 'live', start: startTime, samples: data }, thr, false);
+  }
+  renderNightStats(st, !viewing);
+  const s0 = viewing ? viewing.start : startTime;
+  if (data.length > 1 && s0) {
+    $('axisStart').textContent = hm(s0);
+    $('axisEnd').textContent = hm(s0 + last(data).t * 1000);
   } else {
     $('axisStart').textContent = '';
     $('axisEnd').textContent = '';
@@ -487,15 +799,26 @@ function fixDuration(au) {
     }
   });
 }
+function setKeepButton(s) {
+  const b = $('keepAudio');
+  b.setAttribute('aria-pressed', String(!!s.keepAudio));
+  b.textContent = s.keepAudio ? '録音を残す設定中（タップで解除）' : 'この夜の録音を残す';
+}
 function showPlayer(s) {
-  if (audioURL) URL.revokeObjectURL(audioURL);
-  audioURL = URL.createObjectURL(s.blob);
+  if (audioURL) { URL.revokeObjectURL(audioURL); audioURL = null; }
   const au = $('audio');
+  if (!s.blob) {
+    au.removeAttribute('src');
+    $('player').hidden = true;
+    $('audioGone').hidden = false;
+    return;
+  }
+  audioURL = URL.createObjectURL(s.blob);
   fixDuration(au);
   au.src = audioURL;
-  $('memoView').textContent = s.notes || '';
-  $('memoWrap').hidden = !s.notes;
+  setKeepButton(s);
   $('player').hidden = false;
+  $('audioGone').hidden = true;
 }
 function hidePlayer() {
   const au = $('audio');
@@ -504,11 +827,12 @@ function hidePlayer() {
   au.load();
   if (audioURL) { URL.revokeObjectURL(audioURL); audioURL = null; }
   $('player').hidden = true;
+  $('audioGone').hidden = true;
 }
 $('audio').addEventListener('timeupdate', () => { if (viewing) drawGraph(); });
 
 $('graph').addEventListener('click', e => {
-  if (!viewing || viewing.samples.length < 2) return;
+  if (!viewing || !viewing.blob || viewing.samples.length < 2) return;
   const r = e.currentTarget.getBoundingClientRect();
   const T = Math.max(last(viewing.samples).t, 1);
   const au = $('audio');
@@ -516,11 +840,55 @@ $('graph').addEventListener('click', e => {
   au.play().catch(() => {});
 });
 
+$('keepAudio').addEventListener('click', async () => {
+  if (!viewing) return;
+  viewing.keepAudio = !viewing.keepAudio;
+  setKeepButton(viewing);
+  try { await putSession(viewing); } catch (e) {}
+});
+
+/* ---------- この夜のチェック項目 ---------- */
+let saveT = null;
+function renderNightFactors() {
+  const s = viewing;
+  $('nightFactors').hidden = !s;
+  if (!s) return;
+  const items = factorSummary(s.factors);
+  $('factorText').textContent = !items ? 'チェック項目は記録されていません'
+    : items.length ? items.join('、') : 'あてはまるものはありませんでした';
+  $('memoView').textContent = s.notes || '';
+  $('memoView').hidden = !s.notes;
+}
+function closeFactorEditor() {
+  $('editHost').hidden = true;
+  $('editHost').replaceChildren();
+  $('editFactors').setAttribute('aria-expanded', 'false');
+  $('editFactors').textContent = 'チェック項目を直す';
+}
+$('editFactors').addEventListener('click', () => {
+  if (!viewing) return;
+  if (!$('editHost').hidden) { closeFactorEditor(); return; }
+  const s = viewing;
+  const f = sanitizeFactors(s.factors);
+  $('editHost').replaceChildren(buildFactorForm('e-', f, s.notes, (ff, notes) => {
+    s.factors = ff;
+    s.notes = notes.trim();
+    renderNightFactors();
+    clearTimeout(saveT);
+    saveT = setTimeout(() => { putSession(s).catch(() => {}); }, 400);
+  }));
+  $('editHost').hidden = false;
+  $('editFactors').setAttribute('aria-expanded', 'true');
+  $('editFactors').textContent = '閉じる';
+});
+
 function showSession(s) {
   viewing = s;
+  closeFactorEditor();
   $('threshold').value = s.threshold;
   $('thVal').textContent = `${s.threshold} dB`;
   showPlayer(s);
+  renderNightFactors();
   refreshView();
   document.querySelectorAll('.pick').forEach(p => {
     if (+p.dataset.id === s.id) p.setAttribute('aria-current', 'true');
@@ -597,9 +965,13 @@ async function start() {
     btn.disabled = false;
     return;
   }
+  // 記録をブラウザに消されにくくする（対応しているブラウザのみ）
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().then(updateUsage, () => {}); } catch (e) {}
 
   viewing = null;
   hidePlayer();
+  closeFactorEditor();
+  renderNightFactors();
   document.querySelectorAll('.pick').forEach(p => p.removeAttribute('aria-current'));
 
   actx = new (window.AudioContext || window.webkitAudioContext)();
@@ -633,7 +1005,7 @@ async function start() {
     const c = clock(t);
     $('moonMain').textContent = c;
     $('dimTime').textContent = c;
-    if ($('dim').hidden) refreshView();
+    if ($('dim').hidden && !$('panelRec').hidden) refreshView();
   }, 1000);
 
   await requestWakeLock();
@@ -665,20 +1037,27 @@ async function stop() {
     threshold: thr,
     samples,
     events: findEvents(samples, thr),
-    notes: $('notes').value.trim(),
+    notes: tonight.notes.trim(),
+    factors: { ...tonight.factors },
+    keepAudio: false,
     blob: new Blob(chunks, { type: recorder.mimeType || 'audio/webm' })
   };
 
   setRecordingUI(false);
   try {
     await putSession(session);
-    $('notes').value = '';
-    setStatus(`保存しました。いびき候補は ${session.events.length} 回、合計 ${durJa(eventTotal(session.events))} でした。`);
+    tonight = { factors: emptyFactors(), notes: '' };
+    ls.del('snore-draft');
+    mountTonightForm();
+    const st = nightStats(session);
+    setStatus(`保存しました。いびきの割合は ${pct(st.ratio)}（${durJa(st.snoreSec)}）でした。`);
   } catch (e) {
     setStatus('保存できませんでした。端末の空き容量を確認してください。', true);
   }
+  await pruneAudio();
   await loadList();
   showSession(session);
+  updateUsage();
 }
 
 // 寝ぼけて止めないよう、停止は4秒以内に2回タップしたときだけ
@@ -710,20 +1089,18 @@ $('threshold').addEventListener('change', async e => {
   viewing.threshold = +e.target.value;
   viewing.events = findEvents(viewing.samples, viewing.threshold);
   try { await putSession(viewing); } catch (err) {}
-  const id = viewing.id;
   await loadList();
-  document.querySelectorAll('.pick').forEach(p => { if (+p.dataset.id === id) p.setAttribute('aria-current', 'true'); });
 });
 
 /* ---------- これまでの夜 ---------- */
 function drawSpark(c, s) {
   const { g, W, H } = sizeCanvas(c, 34);
-  const d = s.samples;
-  if (d.length < 2) return;
+  const d = s.samples || [];
+  if (d.length < 2 || !W) return;
   const T = Math.max(last(d).t, 1);
   const y = db => H - 2 - ((Math.min(Math.max(db, -60), 0) + 60) / 60) * (H - 4);
   const bands = new Path2D();
-  for (const e of s.events) {
+  for (const e of (s.events || findEvents(d, s.threshold))) {
     bands.rect(e.start / T * W, 0, Math.max((e.end - e.start + 1) / T * W, 1.5), H);
   }
   g.fillStyle = 'rgba(255,143,163,.35)';
@@ -740,44 +1117,28 @@ function drawSpark(c, s) {
 
 async function loadList() {
   if (!db) return;
-  const all = (await getAllSessions()).sort((a, b) => b.id - a.id);
+  const all = (await getAllSessions()).sort((a, b) => b.start - a.start);
   const L = $('list');
-  L.innerHTML = '';
+  L.replaceChildren();
   $('emptyList').hidden = all.length > 0;
 
   for (const s of all) {
-    const li = document.createElement('li');
-
-    const pick = document.createElement('button');
-    pick.className = 'pick';
+    const st = nightStats(s);
+    const pick = h('button', { type: 'button', class: 'pick' },
+      h('span', { class: 'pick-title' }, nightLabel(s.start)),
+      h('span', { class: 'pick-sub' }, `${hm(s.start)}〜${hm(s.start + s.duration * 1000)}（${durJa(s.duration)}）　いびき ${pct(st.ratio)}${s.blob ? '' : '　音声なし'}`)
+    );
     pick.dataset.id = s.id;
     if (viewing && viewing.id === s.id) pick.setAttribute('aria-current', 'true');
-
-    const title = document.createElement('span');
-    title.className = 'pick-title';
-    title.textContent = nightLabel(s.start);
-
-    const sub = document.createElement('span');
-    sub.className = 'pick-sub';
-    sub.textContent = `${hm(s.start)}〜${hm(s.start + s.duration * 1000)}（${durJa(s.duration)}）　いびき候補 ${s.events.length}回`;
-
-    const spark = document.createElement('canvas');
-    spark.className = 'spark';
-    spark.setAttribute('aria-hidden', 'true');
-
-    pick.append(title, sub, spark);
+    const spark = h('canvas', { class: 'spark', 'aria-hidden': 'true' });
+    pick.append(spark);
     pick.addEventListener('click', () => {
       if (recording()) { setStatus('録音中は過去の記録を開けません'); return; }
-      document.querySelectorAll('.pick').forEach(p => p.removeAttribute('aria-current'));
-      pick.setAttribute('aria-current', 'true');
       showSession(s);
       window.scrollTo({ top: $('nightSec').offsetTop - 12, behavior: reduceMotion ? 'auto' : 'smooth' });
     });
 
-    const del = document.createElement('button');
-    del.className = 'del';
-    del.textContent = '削除';
-    del.setAttribute('aria-label', `${nightLabel(s.start)}の記録を削除`);
+    const del = h('button', { type: 'button', class: 'del', 'aria-label': `${nightLabel(s.start)}の記録を削除` }, '削除');
     let delArm = null;
     del.addEventListener('click', async () => {
       if (!delArm) {
@@ -788,15 +1149,384 @@ async function loadList() {
       }
       clearTimeout(delArm);
       await deleteSession(s.id);
-      if (viewing && viewing.id === s.id) { viewing = null; hidePlayer(); refreshView(); }
+      if (viewing && viewing.id === s.id) { viewing = null; hidePlayer(); renderNightFactors(); refreshView(); }
       loadList();
+      updateUsage();
     });
 
-    li.append(pick, del);
-    L.append(li);
+    L.append(h('li', null, pick, del));
     drawSpark(spark, s);
   }
 }
+
+/* ---------- データの保存 ---------- */
+const AUDIO_DAYS_KEY = 'snore-audio-days';
+const getAudioDays = () => { const v = ls.get(AUDIO_DAYS_KEY, 7); return [0, 3, 7, 14, 30].includes(v) ? v : 7; };
+
+// 保存期間を過ぎた夜の音声だけを消す（数値は残す）
+async function pruneAudio() {
+  const days = getAudioDays();
+  if (!db || !days) return 0;
+  const limit = Date.now() - days * 86400000;
+  let n = 0;
+  for (const s of await getAllSessions()) {
+    if (s.blob && !s.keepAudio && s.start < limit) {
+      s.blob = null;
+      s.audioDeleted = true;
+      try { await putSession(s); n++; } catch (e) {}
+      if (viewing && viewing.id === s.id) { viewing.blob = null; viewing.audioDeleted = true; showPlayer(viewing); }
+    }
+  }
+  return n;
+}
+
+async function updateUsage() {
+  const all = await getAllSessions();
+  const withAudio = all.filter(s => s.blob).length;
+  let text = `記録 ${all.length}夜分（音声が残っている夜 ${withAudio}夜）`;
+  try {
+    if (navigator.storage && navigator.storage.estimate) {
+      const e = await navigator.storage.estimate();
+      text += `。使用量 約${fmtBytes(e.usage || 0)}`;
+    }
+  } catch (e) {}
+  try {
+    if (navigator.storage && navigator.storage.persisted && await navigator.storage.persisted()) text += '。ブラウザがデータを自動で消さない設定になっています';
+  } catch (e) {}
+  $('usage').textContent = text;
+}
+
+function dataMsg(text, warn = false) {
+  $('dataMsg').textContent = text;
+  $('dataMsg').classList.toggle('warn', warn);
+}
+
+$('audioDays').addEventListener('change', async e => {
+  ls.set(AUDIO_DAYS_KEY, +e.target.value);
+  const n = await pruneAudio();
+  dataMsg(n ? `保存期間を過ぎた${n}夜分の音声を削除しました。数値は残っています。` : '保存期間を変更しました。');
+  await loadList();
+  updateUsage();
+});
+
+// バックアップ：数値は1秒ごとの差分と、1dB単位に丸めた音量で小さくまとめる
+function encodeSamples(d) {
+  const dt = [], dbs = [];
+  let prev = 0;
+  for (const p of d) { dt.push(p.t - prev); prev = p.t; dbs.push(Math.round(p.db)); }
+  return { dt, db: dbs };
+}
+function decodeSamples(o) {
+  const out = [];
+  let t = 0;
+  for (let i = 0; i < o.dt.length; i++) {
+    const dt = Number(o.dt[i]), v = Number(o.db[i]);
+    if (!Number.isFinite(dt) || !Number.isFinite(v)) continue;
+    t += dt;
+    out.push({ t, db: v });
+  }
+  return out;
+}
+
+$('exportBtn').addEventListener('click', async () => {
+  const all = (await getAllSessions()).sort((a, b) => a.start - b.start);
+  if (!all.length) { dataMsg('まだ記録がありません。'); return; }
+  const payload = {
+    app: 'snore-tracker', format: 1, exportedAt: new Date().toISOString(),
+    nights: all.map(s => ({
+      id: s.id, start: s.start, threshold: s.threshold,
+      notes: s.notes || '', factors: s.factors || null, keepAudio: !!s.keepAudio,
+      samples: encodeSamples(s.samples || [])
+    }))
+  };
+  const d = new Date();
+  const name = `snore-tracker-backup-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.json`;
+  const url = URL.createObjectURL(new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+  const a = h('a', { href: url, download: name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  dataMsg(`${all.length}夜分のバックアップを保存しました（${name}）。`);
+});
+
+$('importBtn').addEventListener('click', () => $('importFile').click());
+$('importFile').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (!db) { dataMsg('この端末では記録を保存できません。', true); return; }
+  let data;
+  try { data = JSON.parse(await file.text()); }
+  catch (err) { dataMsg('ファイルを読み込めませんでした。このアプリで保存したバックアップを選んでください。', true); return; }
+  if (!data || data.app !== 'snore-tracker' || !Array.isArray(data.nights)) {
+    dataMsg('いびきトラッカーのバックアップではないようです。', true);
+    return;
+  }
+  const existing = new Set((await getAllSessions()).map(s => s.id));
+  let added = 0, skipped = 0, bad = 0;
+  for (const n of data.nights) {
+    const ok = n && typeof n.id === 'number' && typeof n.start === 'number' && n.samples &&
+      Array.isArray(n.samples.dt) && Array.isArray(n.samples.db) && n.samples.dt.length === n.samples.db.length;
+    if (!ok) { bad++; continue; }
+    if (existing.has(n.id)) { skipped++; continue; }
+    const smp = decodeSamples(n.samples);
+    const thr = typeof n.threshold === 'number' ? n.threshold : -35;
+    try {
+      await putSession({
+        id: n.id, start: n.start, duration: smp.length ? last(smp).t : 0, threshold: thr,
+        samples: smp, events: findEvents(smp, thr),
+        notes: typeof n.notes === 'string' ? n.notes : '',
+        factors: n.factors ? sanitizeFactors(n.factors) : null,
+        keepAudio: !!n.keepAudio, blob: null, audioDeleted: true
+      });
+      added++;
+    } catch (err) { bad++; }
+  }
+  const parts = [`${added}夜分を読み込みました`];
+  if (skipped) parts.push(`${skipped}夜分はすでにあったため読み込んでいません`);
+  if (bad) parts.push(`${bad}夜分は内容が正しくないため読み込めませんでした`);
+  dataMsg(parts.join('。') + '。', bad > 0);
+  await loadList();
+  updateUsage();
+});
+
+/* ---------- 分析 ---------- */
+const TIPS = {
+  alcohol: 'お酒はのどの筋肉をゆるめ、いびきを起こしやすくします。寝る前3〜4時間は飲まない日を作って、いびきの割合を比べてみましょう。',
+  lateMeal: '寝る直前の食事は眠りを浅くし、いびきにつながることがあります。夕食は寝る3時間前までに済ませてみましょう。',
+  nasal: '鼻がつまると口で息をするようになり、いびきが出やすくなります。加湿や鼻腔テープを試し、鼻炎やアレルギーが続くなら耳鼻咽喉科で相談しましょう。',
+  tired: '疲れている夜は眠りが深くなり、いびきが出やすいことがあります。睡眠時間を確保し、疲れをため込まないようにしましょう。',
+  sedative: '眠くなる薬（睡眠薬、かぜ薬、アレルギーの薬など）は、のどの筋肉をゆるめることがあります。気になるときは自分の判断でやめず、医師や薬剤師に相談してください。',
+  humidity: '空気が乾燥するとのどや鼻が乾き、いびきが出やすくなります。加湿器などで湿度50〜60%を目安にしてみましょう。',
+  temp: '寝室の温度で眠りの深さや鼻の通りが変わることがあります。エアコンなどで調整して、いびきの割合を比べてみましょう。'
+};
+const GENERAL = [
+  { key: 'side', title: '横向きで寝る', body: 'あお向けだと舌がのどの奥に落ち込み、空気の通り道が狭くなります。抱き枕や、背中側に置いたクッションを使うと続けやすくなります。' },
+  { key: 'alcohol', title: '寝る前のお酒を控える', body: 'お酒はのどの筋肉をゆるめます。寝る前3〜4時間は飲まないようにしてみましょう。' },
+  { key: 'nasal', title: '鼻の通りをよくする', body: '鼻づまりがあると口で息をするようになり、いびきが出やすくなります。' },
+  { key: 'humidity', title: '寝室を乾燥させない', body: 'のどや鼻が乾くと、いびきが出やすくなります。湿度50〜60%が目安です。' },
+  { key: 'pillow', title: '枕の高さを合わせる', body: '高すぎる枕はあごが引け、空気の通り道が狭くなります。' },
+  { key: 'weight', title: '体重を見直す', body: '首のまわりに脂肪がつくと、空気の通り道が狭くなります。' },
+  { key: 'smoke', title: 'たばこを控える', body: 'のどや鼻の粘膜の炎症につながります。' }
+];
+
+const niceMax = v => Math.max(.05, Math.ceil(v * 100 / 5) * 5 / 100);
+
+function barChart(items, opts = {}) {
+  const max = niceMax(Math.max(0, ...items.map(i => i.value), opts.avg || 0));
+  const bars = h('div', { class: 'bars' });
+  const ro = h('p', { class: 'readout', 'aria-live': 'polite' }, opts.hint || '');
+  const xl = h('div', { class: 'xlabels', 'aria-hidden': 'true' });
+  bars.append(h('div', { class: 'gridline', style: 'bottom:100%' }, h('span', null, `${Math.round(max * 100)}%`)));
+  let active = null;
+  const every = items.length <= 8 ? 1 : Math.ceil(items.length / 5);
+  items.forEach((it, i) => {
+    const hgt = it.value > 0 ? Math.max(it.value / max * 100, 2) : .8;
+    const b = h('button', { type: 'button', class: 'bar', 'aria-label': it.aria, 'aria-pressed': 'false' }, h('i', { style: `height:${hgt}%` }));
+    const pick = () => {
+      if (active) active.setAttribute('aria-pressed', 'false');
+      active = b;
+      b.setAttribute('aria-pressed', 'true');
+      ro.replaceChildren(...[].concat(it.readout));
+    };
+    b.addEventListener('click', pick);
+    b.addEventListener('focus', pick);
+    b.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') pick(); });
+    bars.append(b);
+    const lastOne = i === items.length - 1;
+    const show = every === 1 || lastOne || (i % every === 0 && items.length - 1 - i >= every / 2);
+    xl.append(h('span', null, show ? it.label : ''));
+  });
+  if (opts.avg != null) bars.append(h('div', { class: 'avg', style: `bottom:${opts.avg / max * 100}%` }, h('span', null, opts.avgLabel)));
+  return h('div', { class: 'chart' }, bars, xl, ro);
+}
+
+function openNight(s) {
+  showTab('rec');
+  showSession(s);
+  window.scrollTo({ top: $('nightSec').offsetTop - 12, behavior: 'auto' });
+}
+
+async function renderAnalysis() {
+  const host = $('anaContent');
+  const all = (await getAllSessions()).filter(s => s.samples && s.samples.length > 1);
+  const nights = all.map(s => ({ s, st: nightStats(s) })).sort((a, b) => a.s.start - b.s.start);
+  const valid = nights.filter(n => n.st.valid);
+  const shortN = nights.length - valid.length;
+  const out = [];
+
+  // はじめに
+  const intro = h('section', { class: 'ana-intro' }, h('h2', null, 'いびきの分析'));
+  if (!valid.length) {
+    intro.append(
+      h('p', null, '2時間以上録音した夜がたまると、ここに結果が出ます。いびきと関係がありそうなことを調べるには、毎晩「寝る前のこと」をチェックしてから録音してください。'),
+      shortN ? h('p', { class: 'hint' }, `2時間未満の記録が${shortN}件ありますが、テストや昼寝の可能性があるため分析には含めていません。`) : null
+    );
+    out.push(intro);
+  } else {
+    const recent = valid.slice(-7), prev = valid.slice(-14, -7);
+    const rAvg = mean(recent.map(n => n.st.ratio));
+    const lead = h('p', { class: 'lead' }, `直近${recent.length}夜のいびきの割合は平均 `, h('b', null, pct(rAvg)), ' です。');
+    if (prev.length >= 3) {
+      const pAvg = mean(prev.map(n => n.st.ratio));
+      const diff = Math.round((rAvg - pAvg) * 100);
+      lead.append(Math.abs(diff) < 2
+        ? `その前の${prev.length}夜（${pct(pAvg)}）とほぼ同じです。`
+        : `その前の${prev.length}夜（${pct(pAvg)}）より ${Math.abs(diff)}ポイント${diff < 0 ? '減って' : '増えて'}います。`);
+    }
+    intro.append(lead, h('p', { class: 'hint' }, 'いびきの割合は、録音していた時間のうち、いびき候補の音が出ていた時間の割合です。'));
+    if (shortN) intro.append(h('p', { class: 'hint' }, `2時間未満の記録（${shortN}件）は含めていません。`));
+    if (new Set(valid.map(n => n.st.thr)).size > 1) {
+      intro.append(h('p', { class: 'hint' }, '夜によって判定ラインが違うため、夜どうしの比較は目安です。判定ラインをそろえると比べやすくなります。'));
+    }
+    out.push(intro);
+
+    // 推移
+    const shown = valid.slice(-14);
+    const trend = h('section', null, h('h2', null, 'いびきの推移'));
+    trend.append(barChart(shown.map(n => ({
+      value: n.st.ratio,
+      label: shortDate(n.s.start),
+      aria: `${nightLabel(n.s.start)}、いびきの割合 ${pct(n.st.ratio)}`,
+      readout: [`${nightLabel(n.s.start)}：いびき ${pct(n.st.ratio)}（${durJa(n.st.snoreSec)}）`, h('button', { type: 'button', class: 'textbtn', onclick: () => openNight(n.s) }, 'この夜を見る')]
+    })), { avg: mean(shown.map(n => n.st.ratio)), avgLabel: `平均 ${pct(mean(shown.map(n => n.st.ratio)))}`, hint: '棒をタップすると、その夜の数値が出ます。' }));
+    out.push(trend);
+  }
+
+  // 関係がありそうなこと
+  const tagged = valid.filter(n => n.s.factors);
+  const rel = h('section', null, h('h2', null, 'いびきと関係がありそうなこと'));
+  const found = [];
+  if (!valid.length) {
+    // 何も出さない（はじめにで説明済み）
+  } else if (!tagged.length) {
+    rel.append(h('p', { class: 'hint' }, '「寝る前のこと」をチェックした夜がまだありません。毎晩チェックしてから録音すると、お酒や鼻づまりなどがある夜とない夜で、いびきの割合を比べられます。'));
+    out.push(rel);
+  } else {
+    const defs = [
+      { key: 'alcohol', kind: 'risk', name: 'お酒を飲んだ夜', short: 'お酒', yes: '飲んだ', no: '飲まない', test: f => f.alcohol > 0 },
+      ...BOOL_FACTORS.map(k => ({ key: k.key, kind: k.kind, name: k.night, short: k.short, yes: 'あり', no: 'なし', test: f => !!f[k.key] })),
+      { key: 'humidity', kind: 'risk', name: '乾燥していた夜（湿度40%未満）', short: '湿度', yes: '40%未満', no: '40%以上', test: f => f.humidity == null ? null : f.humidity < 40 }
+    ];
+    const temps = tagged.map(n => n.s.factors.temp).filter(v => v != null).sort((a, b) => a - b);
+    if (temps.length >= 4 && temps[0] !== last(temps)) {
+      const m = temps[Math.floor(temps.length / 2)];
+      defs.push({ key: 'temp', kind: 'risk', name: `室温が${m}℃以上の夜`, short: '室温', yes: `${m}℃以上`, no: `${m}℃未満`, test: f => f.temp == null ? null : f.temp >= m });
+    }
+    const results = defs.map(d => {
+      const w = [], wo = [];
+      for (const n of tagged) {
+        const v = d.test(n.s.factors);
+        if (v === true) w.push(n.st.ratio); else if (v === false) wo.push(n.st.ratio);
+      }
+      const r = { ...d, w, wo, enough: w.length >= 2 && wo.length >= 2 };
+      if (r.enough) {
+        r.mw = mean(w); r.mwo = mean(wo); r.diff = r.mw - r.mwo;
+        r.dir = r.diff >= .03 && r.mw >= r.mwo * 1.25 ? 'up' : r.diff <= -.03 && r.mw <= r.mwo * .8 ? 'down' : 'same';
+      }
+      return r;
+    });
+    const enough = results.filter(r => r.enough).sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+    const notYet = results.filter(r => !r.enough);
+
+    if (enough.length) {
+      const scale = niceMax(Math.max(...enough.flatMap(r => [r.mw, r.mwo])));
+      const list = h('div', { class: 'cmp-list' });
+      for (const r of enough) {
+        let chip = ['はっきりした差なし', ''];
+        if (r.dir === 'up') chip = r.kind === 'risk' ? ['いびきが多い傾向', 'up'] : ['いびきが多め', ''];
+        if (r.dir === 'down') chip = r.kind === 'try' ? ['いびきが少ない傾向', 'down'] : ['いびきが少なめ', ''];
+        const row = (who, n, v, cls) => h('div', { class: 'cmp-row' },
+          h('span', { class: 'who' }, `${who}（${n}夜）`),
+          h('span', { class: 'track' }, h('span', { class: `fill ${cls}`, style: `width:${Math.max(v / scale * 100, v > 0 ? 1.5 : 0)}%` })),
+          h('span', { class: 'val' }, pct(v)));
+        list.append(h('div', { class: 'cmp' },
+          h('div', { class: 'cmp-head' }, h('span', { class: 'cmp-name' }, r.name), h('span', { class: `chip ${chip[1]}` }, chip[0])),
+          row(r.yes, r.w.length, r.mw, 'with'),
+          row(r.no, r.wo.length, r.mwo, 'without')));
+        if (r.dir === 'up' && r.kind === 'risk') found.push({ cls: 'mine', key: r.key, head: `${r.name}は、いびきが多めです（${pct(r.mw)}。そうでない夜は${pct(r.mwo)}）`, body: TIPS[r.key] });
+        if (r.dir === 'down' && r.kind === 'try') found.push({ cls: 'good', key: r.key, head: `${r.name}は、いびきが少なめです（${pct(r.mw)}。そうでない夜は${pct(r.mwo)}）`, body: 'この対策は合っている可能性があります。続けて、変化を見てみましょう。' });
+      }
+      rel.append(h('p', { class: 'hint' }, '数字は、それぞれの夜のいびきの割合の平均です。夜の数が少ないうちは偶然の差も出るので、目安として見てください。'), list);
+    } else {
+      rel.append(h('p', { class: 'hint' }, 'まだ比べられる項目がありません。'));
+    }
+    if (notYet.length) {
+      rel.append(h('p', { class: 'hint' }, `まだ比べられないもの：${notYet.map(r => r.short).join('、')}。それぞれ「あり」と「なし」の夜が2夜以上たまると比べられます。`));
+    }
+    const untagged = valid.length - tagged.length;
+    if (untagged) rel.append(h('p', { class: 'hint' }, `チェック項目のない夜（${untagged}夜）は、比べる対象に入れていません。`));
+    out.push(rel);
+  }
+
+  // 時間帯
+  if (valid.length) {
+    const hr = new Array(24).fill(0), hs = new Array(24).fill(0);
+    for (const n of valid) for (let i = 0; i < 24; i++) { hr[i] += n.st.hourRec[i]; hs[i] += n.st.hourSnore[i]; }
+    const hours = [];
+    for (let k = 0; k < 24; k++) { const i = (12 + k) % 24; if (hr[i] >= 1800) hours.push(i); }
+    if (hours.length >= 2) {
+      const ratios = hours.map(i => hs[i] / hr[i]);
+      const top = hours[ratios.indexOf(Math.max(...ratios))];
+      const sec = h('section', null, h('h2', null, 'いびきが多い時間帯'),
+        h('p', { class: 'lead' }, Math.max(...ratios) > 0 ? `いちばん多いのは ${top}時台 です。` : 'いびき候補の音は記録されていません。'));
+      sec.append(barChart(hours.map((i, k) => ({
+        value: ratios[k],
+        label: `${i}時`,
+        aria: `${i}時台、いびきの割合 ${pct(ratios[k])}`,
+        readout: `${i}時台：録音した時間のうち ${pct(ratios[k])} がいびき（${valid.length}夜分をまとめた値）`
+      })), { hint: '棒をタップすると、その時間帯の数値が出ます。' }));
+      out.push(sec);
+    }
+  }
+
+  // 改善のヒント
+  const tips = h('section', null, h('h2', null, '改善のヒント'));
+  if (found.length) {
+    tips.append(h('h3', { class: 'subhead' }, 'あなたの記録からわかったこと'),
+      h('ul', { class: 'tips' }, found.map(t => h('li', { class: t.cls }, h('b', null, t.head), h('p', null, t.body)))));
+  } else if (valid.length) {
+    tips.append(h('p', { class: 'hint' }, '今のところ、記録から特に目立つ要因は見つかっていません。チェックした夜が増えると、ここにあなたに合ったヒントが出ます。'));
+  }
+  const shownKeys = new Set(found.map(t => t.key));
+  tips.append(h('h3', { class: 'subhead' }, '一般的に知られている対策'),
+    h('ul', { class: 'tips' }, GENERAL.filter(g => !shownKeys.has(g.key)).map(g => h('li', null, h('b', null, g.title), h('p', null, g.body)))));
+  out.push(tips);
+
+  // 受診の目安
+  const med = h('div', { class: 'notice' },
+    h('p', null, 'いびきが続く場合、睡眠時無呼吸症候群などが隠れていることがあります。次のようなことがあれば、睡眠外来や耳鼻咽喉科で相談してください。'),
+    h('ul', null,
+      h('li', null, '寝ている間に呼吸が止まっていると、家族などに言われた'),
+      h('li', null, '大きないびきが、ほぼ毎晩ある'),
+      h('li', null, '日中に強い眠気がある、朝起きたときに頭が痛い'),
+      h('li', null, '夜中に何度も目が覚める、トイレに何度も起きる')));
+  const recent7 = valid.slice(-7);
+  if (recent7.length >= 3) {
+    const k = recent7.filter(n => n.st.ratio >= .1).length;
+    med.append(h('p', { class: 'hint' }, `参考：ここ${recent7.length}夜のうち${k}夜で、録音時間の1割以上いびき候補の音が出ていました。`));
+  }
+  med.append(h('p', { class: 'hint' }, 'このアプリの判定は音の大きさによる目安で、病気の診断には使えません。'));
+  out.push(h('section', null, h('h2', null, '病院で相談したほうがよいサイン'), med));
+
+  host.replaceChildren(...out);
+}
+
+/* ---------- タブ ---------- */
+function showTab(name) {
+  const ana = name === 'ana';
+  $('panelRec').hidden = ana;
+  $('panelAna').hidden = !ana;
+  $('tabRec').setAttribute('aria-selected', String(!ana));
+  $('tabAna').setAttribute('aria-selected', String(ana));
+  try { history.replaceState(null, '', ana ? '#analysis' : location.pathname + location.search); } catch (e) {}
+  window.scrollTo(0, 0);
+  if (ana) renderAnalysis();
+  else { refreshView(); loadList(); }
+}
+$('tabRec').addEventListener('click', () => showTab('rec'));
+$('tabAna').addEventListener('click', () => showTab('ana'));
 
 /* ---------- 画面の状態 ---------- */
 document.addEventListener('visibilitychange', async () => {
@@ -815,7 +1545,7 @@ let resizeT;
 addEventListener('resize', () => {
   clearTimeout(resizeT);
   resizeT = setTimeout(() => {
-    if (innerWidth !== lastW) { lastW = innerWidth; buildSky(); loadList(); }
+    if (innerWidth !== lastW) { lastW = innerWidth; buildSky(); if (!$('panelRec').hidden) loadList(); }
     else { sizeSky(); paintSky(performance.now()); }
     refreshView();
   }, 150);
@@ -825,6 +1555,8 @@ addEventListener('resize', () => {
 (async () => {
   buildSky();
   startTwinkle();
+  mountTonightForm();
+  $('audioDays').value = String(getAudioDays());
   const problem = micProblem();
   if (problem) setStatus(MSG[problem], true);
   try {
@@ -832,8 +1564,11 @@ addEventListener('resize', () => {
   } catch (e) {
     setStatus('この端末では記録を保存できません。プライベートブラウズを解除してお試しください。', true);
   }
+  if (db) await pruneAudio();
   refreshView();
   await loadList();
+  updateUsage();
+  if (location.hash === '#analysis') showTab('ana');
   if (document.fonts) document.fonts.ready.then(refreshView);
 })();
 </script>
