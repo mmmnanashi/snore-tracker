@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#050817">
+<title>いびきトラッカー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: dark;
+    --sky:#050817;
+    --moon:#f4ebc8;
+    --moon-shade:#d6c893;
+    --star:#a9c8ff;
+    --snore:#ff8fa3;
+    --text:#e9ecff;
+    --muted:#9ba4cc;
+    --line:rgba(169,200,255,.16);
+    --field:rgba(8,12,40,.6);
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html,body{margin:0}
+  body{
+    font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif;
+    background:var(--sky);
+    color:var(--text);
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  #sky{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+  main{
+    position:relative;z-index:1;
+    max-width:520px;margin:0 auto;
+    padding:max(18px,env(safe-area-inset-top)) 16px calc(56px + env(safe-area-inset-bottom));
+  }
+  h1{font-size:15px;font-weight:500;letter-spacing:.1em;color:var(--muted);margin:0}
+  h2{font-size:18px;font-weight:700;margin:0;letter-spacing:.02em}
+  section{margin-top:40px}
+  .hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+
+  button,input,textarea{font:inherit}
+  button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--star);outline-offset:3px}
+
+  /* 月のボタン */
+  .hero{margin-top:12px;display:flex;flex-direction:column;align-items:center;padding:28px 0 4px}
+  .moon{
+    position:relative;width:204px;height:204px;border-radius:50%;border:0;cursor:pointer;
+    color:#1a2050;
+    background:
+      radial-gradient(circle at 70% 64%, rgba(140,124,80,.26) 0 8%, transparent 9%),
+      radial-gradient(circle at 28% 70%, rgba(140,124,80,.2) 0 5.5%, transparent 6.5%),
+      radial-gradient(circle at 62% 24%, rgba(140,124,80,.16) 0 4.5%, transparent 5.5%),
+      radial-gradient(circle at 36% 32%, #fffdf2 0%, var(--moon) 48%, var(--moon-shade) 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(255,250,225,.45),
+      inset -14px -18px 40px rgba(120,100,50,.18),
+      0 0 44px rgba(244,235,200,.35),
+      0 0 120px rgba(244,235,200,.14);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    transition:filter .5s ease, transform .15s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .moon:focus-visible{outline-offset:8px}
+  .moon:active{transform:scale(.97)}
+  .moon:disabled{cursor:wait}
+  .moon-main{font-size:23px;font-weight:700;letter-spacing:.05em;font-variant-numeric:tabular-nums}
+  .moon-sub{font-size:12px;color:rgba(26,32,80,.68)}
+  .moon.on{filter:brightness(.8) saturate(.9)}
+  .moon.on .moon-main{font-size:31px;letter-spacing:.02em}
+  .moon.on::after{
+    content:"";position:absolute;inset:-12px;border-radius:50%;
+    border:1.5px solid rgba(244,235,200,.5);
+    animation:breathe 4.5s ease-in-out infinite;
+  }
+  @keyframes breathe{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.07);opacity:.12}}
+  .status{margin:24px 0 0;font-size:14px;color:var(--muted);text-align:center;max-width:26em}
+  .status.warn{color:var(--moon)}
+
+  /* 今夜の音 */
+  .night-head{margin-bottom:10px}
+  .stats{margin:2px 0 0;display:flex;gap:16px;font-size:13px;color:var(--muted);white-space:nowrap;min-height:4px}
+  .stats b{font-size:22px;font-weight:700;color:var(--text);margin:0 2px;font-variant-numeric:tabular-nums}
+  .stats .snore b{color:var(--snore)}
+  .graph-wrap{background:rgba(4,7,26,.5);border-radius:18px;padding:12px 12px 8px;border:1px solid rgba(169,200,255,.08)}
+  #graph{display:block;width:100%;height:190px;cursor:pointer;touch-action:manipulation}
+  .axis{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-height:20px;margin-top:4px}
+
+  .player{margin-top:14px}
+  audio{width:100%;height:40px;display:block}
+  .memo-view{margin-top:12px;padding-left:12px;border-left:2px solid rgba(244,235,200,.5)}
+  .memo-view span{font-size:12px;color:var(--muted)}
+  .memo-view p{margin:0;font-size:14.5px;white-space:pre-wrap}
+
+  .threshold{margin-top:22px}
+  .threshold label{display:flex;justify-content:space-between;font-size:14px}
+  .threshold output{color:var(--moon);font-variant-numeric:tabular-nums}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:30px;background:transparent;margin:4px 0 0}
+  input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:rgba(169,200,255,.28)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--moon);margin-top:-9px;box-shadow:0 0 12px rgba(244,235,200,.55);border:0}
+  input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:rgba(169,200,255,.28)}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--moon);border:0;box-shadow:0 0 12px rgba(244,235,200,.55)}
+  .ends{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted)}
+
+  /* メモ */
+  textarea{
+    display:block;width:100%;min-height:88px;margin-top:10px;
+    font-size:16px;color:var(--text);
+    background:var(--field);border:1px solid var(--line);border-radius:14px;
+    padding:10px 12px;resize:vertical;
+  }
+  textarea::placeholder{color:rgba(155,164,204,.55)}
+
+  /* これまでの夜 */
+  .history ul{list-style:none;margin:12px 0 0;padding:0}
+  .history li{display:flex;align-items:stretch;gap:6px;border-top:1px solid var(--line)}
+  .history li:last-child{border-bottom:1px solid var(--line)}
+  .pick{flex:1;min-width:0;display:block;text-align:left;background:none;border:0;color:inherit;padding:14px 2px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .pick-title{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15.5px}
+  .pick-title::before{content:"";width:8px;height:8px;border-radius:50%;background:rgba(169,200,255,.25);flex:none}
+  .pick[aria-current="true"] .pick-title{color:var(--moon)}
+  .pick[aria-current="true"] .pick-title::before{background:var(--moon);box-shadow:0 0 8px rgba(244,235,200,.8)}
+  .pick-sub{display:block;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:2px}
+  .spark{display:block;width:100%;height:34px;margin-top:8px}
+  .del{background:none;border:0;color:var(--muted);font-size:13px;padding:0 6px 0 10px;cursor:pointer}
+  .del:hover,.del.armed{color:var(--snore)}
+  .del.armed{font-weight:700}
+
+  .foot{margin-top:40px;font-size:12px;color:var(--muted);text-align:center}
+
+  /* 録音中の暗い画面 */
+  #dim{
+    position:fixed;inset:0;z-index:20;background:#000;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    color:rgba(233,236,255,.3);cursor:pointer;
+  }
+  .dim-time{font-size:46px;font-weight:500;letter-spacing:.04em;font-variant-numeric:tabular-nums;margin:0}
+  .dim-hint{font-size:13px;margin:0;display:flex;align-items:center;gap:8px}
+  .rec-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,143,163,.55)}
+
+  @media (prefers-reduced-motion: reduce){
+    .moon.on::after{animation:none;opacity:.4}
+    .moon{transition:none}
+  }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+
+<main>
+  <header><h1>いびきトラッカー</h1></header>
+
+  <section class="hero">
+    <button id="moon" class="moon" aria-label="録音を始める">
+      <span class="moon-main" id="moonMain">録音開始</span>
+      <span class="moon-sub" id="moonSub">枕元に置いてタップ</span>
+    </button>
+    <p class="status" id="status" role="status">充電しながら枕元に置き、月をタップして録音します</p>
+  </section>
+
+  <section id="nightSec">
+    <div class="night-head">
+      <h2 id="graphTitle">今夜の音</h2>
+      <p class="stats"><span class="snore" id="statCount"></span><span id="statTotal"></span></p>
+    </div>
+    <div class="graph-wrap">
+      <canvas id="graph" role="img" aria-label="夜間の音量グラフ"></canvas>
+      <div class="axis"><span id="axisStart"></span><span id="axisEnd"></span></div>
+    </div>
+
+    <div class="player" id="player" hidden>
+      <audio id="audio" controls preload="metadata"></audio>
+      <p class="hint">グラフをタップすると、その時刻から再生します</p>
+      <div class="memo-view" id="memoWrap" hidden><span>寝る前のメモ</span><p id="memoView"></p></div>
+    </div>
+
+    <div class="threshold">
+      <label for="threshold">判定ライン <output id="thVal">-35 dB</output></label>
+      <input type="range" id="threshold" min="-60" max="-10" value="-35">
+      <div class="ends"><span>小さな音も拾う</span><span>大きな音だけ</span></div>
+      <p class="hint">点線より大きい音が2秒以上続くと、いびき候補として赤く色がつきます</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><label for="notes">寝る前のメモ</label></h2>
+    <textarea id="notes" placeholder="室温25度、ビール1杯、少し鼻づまり など"></textarea>
+    <p class="hint">録音を止めると、この夜の記録と一緒に保存されます</p>
+  </section>
+
+  <section class="history">
+    <h2>これまでの夜</h2>
+    <p class="hint" id="emptyList">まだ記録がありません。今夜、月をタップして録音してみてください。</p>
+    <ul id="list"></ul>
+  </section>
+
+  <p class="foot">記録はこの端末のブラウザの中だけに保存され、外部には送信されません。</p>
+</main>
+
+<div id="dim" hidden>
+  <p class="dim-time" id="dimTime">00:00:00</p>
+  <p class="dim-hint"><span class="rec-dot"></span>録音中　タップで画面を戻す</p>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const DB_NAME = 'snore-tracker', STORE = 'sessions';
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let db, stream, actx, analyser, recorder, chunks = [], samples = [];
+let timer, sampleTimer, startTime, wakeLock = null;
+let viewing = null, audioURL = null, dimTimer = null;
+
+const recording = () => !!recorder && recorder.state === 'recording';
+const last = arr => arr[arr.length - 1];
+
+/* ---------- 保存（IndexedDB・端末内のみ） ---------- */
+const openDB = () => new Promise((res, rej) => {
+  const r = indexedDB.open(DB_NAME, 1);
+  r.onupgradeneeded = () => r.result.createObjectStore(STORE, { keyPath: 'id' });
+  r.onsuccess = () => res(r.result);
+  r.onerror = () => rej(r.error);
+});
+const store = mode => db.transaction(STORE, mode).objectStore(STORE);
+const putSession = s => new Promise((res, rej) => { const q = store('readwrite').put(s); q.onsuccess = res; q.onerror = () => rej(q.error); });
+const getAllSessions = () => new Promise(res => { const q = store('readonly').getAll(); q.onsuccess = () => res(q.result); q.onerror = () => res([]); });
+const deleteSession = id => new Promise(res => { const q = store('readwrite').delete(id); q.onsuccess = res; });
+
+/* ---------- 表示用の書式 ---------- */
+const pad = n => String(n).padStart(2, '0');
+const clock = sec => `${pad(Math.floor(sec / 3600))}:${pad(Math.floor(sec % 3600 / 60))}:${pad(sec % 60)}`;
+const durJa = sec => {
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  if (h) return `${h}時間${m}分`;
+  if (m) return `${m}分${s ? s + '秒' : ''}`;
+  return `${s}秒`;
+};
+const hm = ms => { const d = new Date(ms); return `${d.getHours()}:${pad(d.getMinutes())}`; };
+const WD = '日月火水木金土';
+const nightLabel = ms => {
+  const d = new Date(ms);
+  if (d.getHours() < 12) d.setDate(d.getDate() - 1); // 深夜0時以降に始めた録音は前日の夜として扱う
+  return `${d.getMonth() + 1}月${d.getDate()}日（${WD[d.getDay()]}）の夜`;
+};
+
+/* ---------- 計算 ---------- */
+const rmsDb = buf => {
+  let s = 0;
+  for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
+  return 20 * Math.log10(Math.sqrt(s / buf.length) + 1e-9);
+};
+// いびき候補：しきい値以上が2秒以上続いた区間
+const findEvents = (data, thr) => {
+  const ev = []; let run = null;
+  for (const s of data) {
+    if (s.db >= thr) { if (!run) run = { start: s.t, end: s.t }; run.end = s.t; }
+    else if (run) { if (run.end - run.start + 1 >= 2) ev.push(run); run = null; }
+  }
+  if (run && run.end - run.start + 1 >= 2) ev.push(run);
+  return ev;
+};
+const eventTotal = ev => ev.reduce((a, e) => a + (e.end - e.start + 1), 0);
+
+// 長い録音でも描画が重くならないよう、画面の幅に合わせて間引く（各区間の最大値を使う）
+const bucket = (data, cols) => {
+  const n = data.length, out = [];
+  cols = Math.max(2, Math.min(n, Math.floor(cols)));
+  for (let i = 0; i < cols; i++) {
+    const a = Math.floor(i * n / cols), b = Math.max(a + 1, Math.floor((i + 1) * n / cols));
+    let m = -Infinity;
+    for (let j = a; j < b && j < n; j++) if (data[j].db > m) m = data[j].db;
+    out.push({ t: data[Math.min(b - 1, n - 1)].t, db: m });
+  }
+  return out;
+};
+
+/* ---------- キャンバス ---------- */
+function sizeCanvas(c, cssH) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = c.clientWidth;
+  c.width = Math.round(W * dpr);
+  c.height = Math.round(cssH * dpr);
+  const g = c.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { g, W, H: cssH };
+}
+
+/* ---------- 星空 ---------- */
+const sky = $('sky');
+let stars = [], rafId = null, lastPaint = 0, lastW = innerWidth;
+
+function sizeSky() {
+  const dpr = window.devicePixelRatio || 1;
+  sky.width = Math.round(innerWidth * dpr);
+  sky.height = Math.round(innerHeight * dpr);
+}
+function buildSky() {
+  sizeSky();
+  const W = innerWidth, H = innerHeight;
+  const count = Math.round(W * H / 2100);
+  stars = Array.from({ length: count }, () => {
+    const big = Math.random() > .93;
+    return {
+      x: Math.random() * W,
+      y: Math.random() * H * .9,
+      r: big ? 1.1 + Math.random() * .8 : .3 + Math.random() * .8,
+      a: .25 + Math.random() * .65,
+      tw: Math.random() < .14,
+      ph: Math.random() * Math.PI * 2,
+      sp: .5 + Math.random() * 1.3,
+      warm: Math.random() < .15
+    };
+  });
+  paintSky(0);
+}
+function paintSky(time) {
+  const dpr = window.devicePixelRatio || 1;
+  const g = sky.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const W = innerWidth, H = innerHeight;
+
+  const grd = g.createLinearGradient(0, 0, 0, H);
+  grd.addColorStop(0, '#050817');
+  grd.addColorStop(.55, '#0d1540');
+  grd.addColorStop(1, '#232d66');
+  g.fillStyle = grd;
+  g.fillRect(0, 0, W, H);
+
+  const glow = g.createRadialGradient(W * .85, H * .15, 0, W * .85, H * .15, Math.max(W, H) * .8);
+  glow.addColorStop(0, 'rgba(120,140,225,.12)');
+  glow.addColorStop(1, 'rgba(120,140,225,0)');
+  g.fillStyle = glow;
+  g.fillRect(0, 0, W, H);
+
+  for (const s of stars) {
+    let a = s.a;
+    if (s.tw && time) a = s.a * (.5 + .5 * Math.sin(time / 1000 * s.sp + s.ph));
+    g.globalAlpha = a;
+    g.fillStyle = s.warm ? '#ffe9c4' : '#dfe8ff';
+    g.beginPath();
+    g.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.globalAlpha = 1;
+
+  // 地平線の丘
+  g.fillStyle = '#080c28';
+  g.beginPath();
+  g.moveTo(0, H);
+  g.lineTo(0, H * .94);
+  g.bezierCurveTo(W * .25, H * .9, W * .45, H * .975, W * .66, H * .935);
+  g.bezierCurveTo(W * .82, H * .905, W * .93, H * .925, W, H * .91);
+  g.lineTo(W, H);
+  g.closePath();
+  g.fill();
+}
+function loop(t) {
+  if (t - lastPaint > 90) { paintSky(t); lastPaint = t; }
+  rafId = requestAnimationFrame(loop);
+}
+function startTwinkle() {
+  if (reduceMotion || rafId || document.hidden || !$('dim').hidden) return;
+  rafId = requestAnimationFrame(loop);
+}
+function stopTwinkle() {
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+}
+
+/* ---------- 音量グラフ ---------- */
+function drawGraph() {
+  const c = $('graph');
+  const { g, W, H } = sizeCanvas(c, 190);
+  const data = viewing ? viewing.samples : samples;
+  const thr = +$('threshold').value;
+  const padT = 8, padB = 8, ih = H - padT - padB;
+  const minDb = -60, maxDb = 0;
+  const y = db => padT + ih - ((Math.min(Math.max(db, minDb), maxDb) - minDb) / (maxDb - minDb)) * ih;
+
+  g.clearRect(0, 0, W, H);
+  g.strokeStyle = 'rgba(169,200,255,.08)';
+  g.lineWidth = 1;
+  for (const v of [-50, -30, -10]) {
+    const yy = Math.round(y(v)) + .5;
+    g.beginPath(); g.moveTo(0, yy); g.lineTo(W, yy); g.stroke();
+  }
+
+  if (data.length < 2) {
+    g.fillStyle = 'rgba(233,236,255,.45)';
+    g.font = '14px "Zen Maru Gothic", sans-serif';
+    g.textAlign = 'center';
+    g.fillText(recording() ? '音を聞いています…' : '録音を始めると、ここに音の波が出ます', W / 2, H / 2);
+    return;
+  }
+
+  const T = Math.max(last(data).t, 1);
+  const x = t => Math.min(W, t / T * W);
+
+  // いびき候補の区間（重なっても色が濃くならないよう、1つの図形としてまとめて塗る）
+  const bands = new Path2D(), ticks = new Path2D();
+  for (const e of findEvents(data, thr)) {
+    const x1 = x(e.start), w = Math.max(x(e.end + 1) - x1, 2);
+    bands.rect(x1, padT, w, ih);
+    ticks.rect(x1, H - 3, w, 3);
+  }
+  g.fillStyle = 'rgba(255,143,163,.17)';
+  g.fill(bands);
+  g.fillStyle = '#ff8fa3';
+  g.fill(ticks);
+
+  // 音量の波
+  const pts = bucket(data, W).map(p => ({ x: x(p.t), y: y(p.db) }));
+  pts[0].x = 0;
+  const fill = g.createLinearGradient(0, padT, 0, H);
+  fill.addColorStop(0, 'rgba(169,200,255,.34)');
+  fill.addColorStop(1, 'rgba(169,200,255,0)');
+  g.beginPath();
+  g.moveTo(0, H - padB);
+  pts.forEach(p => g.lineTo(p.x, p.y));
+  g.lineTo(last(pts).x, H - padB);
+  g.closePath();
+  g.fillStyle = fill;
+  g.fill();
+
+  g.beginPath();
+  pts.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y));
+  g.strokeStyle = '#a9c8ff';
+  g.lineWidth = 1.5;
+  g.shadowColor = 'rgba(169,200,255,.8)';
+  g.shadowBlur = 6;
+  g.stroke();
+  g.shadowBlur = 0;
+
+  // 判定ライン
+  g.setLineDash([5, 5]);
+  g.strokeStyle = 'rgba(244,235,200,.75)';
+  g.lineWidth = 1;
+  g.beginPath(); g.moveTo(0, y(thr)); g.lineTo(W, y(thr)); g.stroke();
+  g.setLineDash([]);
+
+  // 再生位置
+  const au = $('audio');
+  if (viewing && !$('player').hidden && au.currentTime > 0 && au.currentTime <= T + 1) {
+    const px = x(au.currentTime);
+    g.strokeStyle = '#f4ebc8';
+    g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(px, padT); g.lineTo(px, H); g.stroke();
+  }
+}
+
+function showStats(data, thr) {
+  if (data.length < 2) { $('statCount').textContent = ''; $('statTotal').textContent = ''; return; }
+  const ev = findEvents(data, thr);
+  $('statCount').innerHTML = `<b>${ev.length}</b>回`;
+  $('statTotal').innerHTML = `合計 <b>${durJa(eventTotal(ev))}</b>`;
+}
+
+function refreshView() {
+  const data = viewing ? viewing.samples : samples;
+  const thr = +$('threshold').value;
+  drawGraph();
+  showStats(data, thr);
+  const st = viewing ? viewing.start : startTime;
+  if (data.length > 1 && st) {
+    $('axisStart').textContent = hm(st);
+    $('axisEnd').textContent = hm(st + last(data).t * 1000);
+  } else {
+    $('axisStart').textContent = '';
+    $('axisEnd').textContent = '';
+  }
+  $('graphTitle').textContent = viewing ? nightLabel(viewing.start) : '今夜の音';
+}
+
+/* ---------- 再生 ---------- */
+function fixDuration(au) {
+  // 一部ブラウザの録音ファイルは長さ情報がなく、シークできないための対策
+  au.addEventListener('loadedmetadata', function onMeta() {
+    au.removeEventListener('loadedmetadata', onMeta);
+    if (au.duration === Infinity) {
+      au.currentTime = 1e101;
+      au.addEventListener('timeupdate', function onTu() {
+        au.removeEventListener('timeupdate', onTu);
+        au.currentTime = 0;
+      });
+    }
+  });
+}
+function showPlayer(s) {
+  if (audioURL) URL.revokeObjectURL(audioURL);
+  audioURL = URL.createObjectURL(s.blob);
+  const au = $('audio');
+  fixDuration(au);
+  au.src = audioURL;
+  $('memoView').textContent = s.notes || '';
+  $('memoWrap').hidden = !s.notes;
+  $('player').hidden = false;
+}
+function hidePlayer() {
+  const au = $('audio');
+  au.pause();
+  au.removeAttribute('src');
+  au.load();
+  if (audioURL) { URL.revokeObjectURL(audioURL); audioURL = null; }
+  $('player').hidden = true;
+}
+$('audio').addEventListener('timeupdate', () => { if (viewing) drawGraph(); });
+
+$('graph').addEventListener('click', e => {
+  if (!viewing || viewing.samples.length < 2) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  const T = Math.max(last(viewing.samples).t, 1);
+  const au = $('audio');
+  au.currentTime = Math.max(0, (e.clientX - r.left) / r.width * T);
+  au.play().catch(() => {});
+});
+
+function showSession(s) {
+  viewing = s;
+  $('threshold').value = s.threshold;
+  $('thVal').textContent = `${s.threshold} dB`;
+  showPlayer(s);
+  refreshView();
+  document.querySelectorAll('.pick').forEach(p => {
+    if (+p.dataset.id === s.id) p.setAttribute('aria-current', 'true');
+    else p.removeAttribute('aria-current');
+  });
+}
+
+/* ---------- マイクが使えるかの確認 ---------- */
+const MSG = {
+  insecure: 'この開き方ではマイクを使えません。ファイルのままやアプリ内のプレビューではなく、https:// で始まるURLからSafariかChromeで開いてください。',
+  embedded: 'このページはほかの画面の中に表示されているため、マイクを使えません。https:// で始まるURLから、SafariかChromeで直接開いてください。',
+  norecorder: 'このブラウザは録音に対応していません。最新のSafariかChromeで開いてください。',
+  denied: 'マイクの使用が許可されていません。iPhoneは「設定」→「アプリ」→「Safari」→「マイク」、Androidはアドレスバー左のアイコン→「権限」でマイクを許可してから、ページを開き直してください。',
+  notfound: 'マイクが見つかりませんでした。',
+  busy: 'マイクをほかのアプリが使っています。通話や録音のアプリを閉じてから、もう一度タップしてください。'
+};
+const embedded = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+function micProblem() {
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return 'insecure';
+  const policy = document.permissionsPolicy || document.featurePolicy;
+  if (policy && policy.allowsFeature && !policy.allowsFeature('microphone')) return 'embedded';
+  if (!window.MediaRecorder) return 'norecorder';
+  return null;
+}
+function micErrorKey(e) {
+  if (e.name === 'NotAllowedError' || e.name === 'SecurityError') return embedded ? 'embedded' : 'denied';
+  if (e.name === 'NotFoundError' || e.name === 'OverconstrainedError') return 'notfound';
+  if (e.name === 'NotReadableError' || e.name === 'AbortError') return 'busy';
+  return null;
+}
+function setStatus(text, warn = false) {
+  $('status').textContent = text;
+  $('status').classList.toggle('warn', warn);
+}
+
+/* ---------- 録音 ---------- */
+function setRecordingUI(on) {
+  const m = $('moon');
+  m.classList.toggle('on', on);
+  m.disabled = false;
+  m.setAttribute('aria-label', on ? '録音を止める' : '録音を始める');
+  $('moonMain').textContent = on ? '00:00:00' : '録音開始';
+  $('moonSub').textContent = on ? 'タップで停止' : '枕元に置いてタップ';
+}
+
+async function requestWakeLock() {
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch (e) { /* 対応していないブラウザでは何もしない */ }
+}
+
+function scheduleDim() {
+  clearTimeout(dimTimer);
+  if (recording()) dimTimer = setTimeout(showDim, 20000);
+}
+function showDim() { $('dim').hidden = false; stopTwinkle(); }
+$('dim').addEventListener('click', () => { $('dim').hidden = true; startTwinkle(); scheduleDim(); });
+document.addEventListener('pointerdown', () => { if (recording() && $('dim').hidden) scheduleDim(); }, true);
+
+async function start() {
+  const btn = $('moon');
+  const problem = micProblem();
+  if (problem) { setStatus(MSG[problem], true); return; }
+  btn.disabled = true;
+  try {
+    // 音量を正確に測るため、自動音量調整とノイズ除去は切っておく
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    });
+  } catch (e) {
+    const key = micErrorKey(e);
+    setStatus(key ? MSG[key] : `マイクを使えませんでした（${e.name || 'エラー'}）。ページを開き直して、もう一度タップしてください。`, true);
+    btn.disabled = false;
+    return;
+  }
+
+  viewing = null;
+  hidePlayer();
+  document.querySelectorAll('.pick').forEach(p => p.removeAttribute('aria-current'));
+
+  actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === 'suspended') await actx.resume();
+  analyser = actx.createAnalyser();
+  analyser.fftSize = 2048;
+  actx.createMediaStreamSource(stream).connect(analyser);
+
+  chunks = [];
+  // 寝息やいびきを聞き返すには十分な音質で、一晩の録音が大きくなりすぎないようにする
+  try { recorder = new MediaRecorder(stream, { audioBitsPerSecond: 32000 }); }
+  catch (e) { recorder = new MediaRecorder(stream); }
+  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  recorder.start(1000);
+
+  samples = [];
+  startTime = Date.now();
+  const buf = new Float32Array(analyser.fftSize);
+  let peak = -Infinity;
+
+  // 1秒に8回測り、その1秒間でいちばん大きかった音を記録する
+  sampleTimer = setInterval(() => {
+    analyser.getFloatTimeDomainData(buf);
+    peak = Math.max(peak, rmsDb(buf));
+  }, 125);
+
+  timer = setInterval(() => {
+    const t = Math.round((Date.now() - startTime) / 1000);
+    samples.push({ t, db: peak === -Infinity ? -90 : peak });
+    peak = -Infinity;
+    const c = clock(t);
+    $('moonMain').textContent = c;
+    $('dimTime').textContent = c;
+    if ($('dim').hidden) refreshView();
+  }, 1000);
+
+  await requestWakeLock();
+  setRecordingUI(true);
+  setStatus('録音中です。20秒ほど操作しないと画面が暗くなります');
+  refreshView();
+  scheduleDim();
+}
+
+async function stop() {
+  clearInterval(timer);
+  clearInterval(sampleTimer);
+  clearTimeout(dimTimer);
+  $('dim').hidden = true;
+  startTwinkle();
+
+  const stopped = new Promise(r => { recorder.onstop = r; });
+  recorder.stop();
+  await stopped;
+  stream.getTracks().forEach(t => t.stop());
+  actx.close();
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+
+  const thr = +$('threshold').value;
+  const session = {
+    id: Date.now(),
+    start: startTime,
+    duration: samples.length ? last(samples).t : 0,
+    threshold: thr,
+    samples,
+    events: findEvents(samples, thr),
+    notes: $('notes').value.trim(),
+    blob: new Blob(chunks, { type: recorder.mimeType || 'audio/webm' })
+  };
+
+  setRecordingUI(false);
+  try {
+    await putSession(session);
+    $('notes').value = '';
+    setStatus(`保存しました。いびき候補は ${session.events.length} 回、合計 ${durJa(eventTotal(session.events))} でした。`);
+  } catch (e) {
+    setStatus('保存できませんでした。端末の空き容量を確認してください。', true);
+  }
+  await loadList();
+  showSession(session);
+}
+
+// 寝ぼけて止めないよう、停止は4秒以内に2回タップしたときだけ
+let stopArm = null;
+$('moon').addEventListener('click', () => {
+  if (!recording()) return start();
+  if (stopArm) {
+    clearTimeout(stopArm);
+    stopArm = null;
+    return stop();
+  }
+  $('moonSub').textContent = 'もう一度タップで停止';
+  setStatus('もう一度月をタップすると、録音を止めて保存します');
+  stopArm = setTimeout(() => {
+    stopArm = null;
+    if (!recording()) return;
+    $('moonSub').textContent = 'タップで停止';
+    setStatus('録音中です。20秒ほど操作しないと画面が暗くなります');
+  }, 4000);
+});
+
+$('threshold').addEventListener('input', e => {
+  $('thVal').textContent = `${e.target.value} dB`;
+  refreshView();
+});
+$('threshold').addEventListener('change', async e => {
+  // 過去の夜を表示中に動かしたら、その夜の判定もやり直して保存する
+  if (!viewing || recording()) return;
+  viewing.threshold = +e.target.value;
+  viewing.events = findEvents(viewing.samples, viewing.threshold);
+  try { await putSession(viewing); } catch (err) {}
+  const id = viewing.id;
+  await loadList();
+  document.querySelectorAll('.pick').forEach(p => { if (+p.dataset.id === id) p.setAttribute('aria-current', 'true'); });
+});
+
+/* ---------- これまでの夜 ---------- */
+function drawSpark(c, s) {
+  const { g, W, H } = sizeCanvas(c, 34);
+  const d = s.samples;
+  if (d.length < 2) return;
+  const T = Math.max(last(d).t, 1);
+  const y = db => H - 2 - ((Math.min(Math.max(db, -60), 0) + 60) / 60) * (H - 4);
+  const bands = new Path2D();
+  for (const e of s.events) {
+    bands.rect(e.start / T * W, 0, Math.max((e.end - e.start + 1) / T * W, 1.5), H);
+  }
+  g.fillStyle = 'rgba(255,143,163,.35)';
+  g.fill(bands);
+  g.beginPath();
+  bucket(d, W).forEach((p, i) => {
+    const px = i === 0 ? 0 : p.t / T * W;
+    i ? g.lineTo(px, y(p.db)) : g.moveTo(px, y(p.db));
+  });
+  g.strokeStyle = 'rgba(169,200,255,.8)';
+  g.lineWidth = 1;
+  g.stroke();
+}
+
+async function loadList() {
+  if (!db) return;
+  const all = (await getAllSessions()).sort((a, b) => b.id - a.id);
+  const L = $('list');
+  L.innerHTML = '';
+  $('emptyList').hidden = all.length > 0;
+
+  for (const s of all) {
+    const li = document.createElement('li');
+
+    const pick = document.createElement('button');
+    pick.className = 'pick';
+    pick.dataset.id = s.id;
+    if (viewing && viewing.id === s.id) pick.setAttribute('aria-current', 'true');
+
+    const title = document.createElement('span');
+    title.className = 'pick-title';
+    title.textContent = nightLabel(s.start);
+
+    const sub = document.createElement('span');
+    sub.className = 'pick-sub';
+    sub.textContent = `${hm(s.start)}〜${hm(s.start + s.duration * 1000)}（${durJa(s.duration)}）　いびき候補 ${s.events.length}回`;
+
+    const spark = document.createElement('canvas');
+    spark.className = 'spark';
+    spark.setAttribute('aria-hidden', 'true');
+
+    pick.append(title, sub, spark);
+    pick.addEventListener('click', () => {
+      if (recording()) { setStatus('録音中は過去の記録を開けません'); return; }
+      document.querySelectorAll('.pick').forEach(p => p.removeAttribute('aria-current'));
+      pick.setAttribute('aria-current', 'true');
+      showSession(s);
+      window.scrollTo({ top: $('nightSec').offsetTop - 12, behavior: reduceMotion ? 'auto' : 'smooth' });
+    });
+
+    const del = document.createElement('button');
+    del.className = 'del';
+    del.textContent = '削除';
+    del.setAttribute('aria-label', `${nightLabel(s.start)}の記録を削除`);
+    let delArm = null;
+    del.addEventListener('click', async () => {
+      if (!delArm) {
+        del.textContent = '本当に削除';
+        del.classList.add('armed');
+        delArm = setTimeout(() => { delArm = null; del.textContent = '削除'; del.classList.remove('armed'); }, 4000);
+        return;
+      }
+      clearTimeout(delArm);
+      await deleteSession(s.id);
+      if (viewing && viewing.id === s.id) { viewing = null; hidePlayer(); refreshView(); }
+      loadList();
+    });
+
+    li.append(pick, del);
+    L.append(li);
+    drawSpark(spark, s);
+  }
+}
+
+/* ---------- 画面の状態 ---------- */
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible') {
+    if (recording() && !wakeLock) await requestWakeLock();
+    startTwinkle();
+  } else {
+    stopTwinkle();
+  }
+});
+addEventListener('beforeunload', e => {
+  if (recording()) { e.preventDefault(); e.returnValue = ''; }
+});
+
+let resizeT;
+addEventListener('resize', () => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => {
+    if (innerWidth !== lastW) { lastW = innerWidth; buildSky(); loadList(); }
+    else { sizeSky(); paintSky(performance.now()); }
+    refreshView();
+  }, 150);
+});
+
+/* ---------- 起動 ---------- */
+(async () => {
+  buildSky();
+  startTwinkle();
+  const problem = micProblem();
+  if (problem) setStatus(MSG[problem], true);
+  try {
+    db = await openDB();
+  } catch (e) {
+    setStatus('この端末では記録を保存できません。プライベートブラウズを解除してお試しください。', true);
+  }
+  refreshView();
+  await loadList();
+  if (document.fonts) document.fonts.ready.then(refreshView);
+})();
+</script>
+</body>
+</html>
