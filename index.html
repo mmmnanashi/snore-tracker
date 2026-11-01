@@ -85,6 +85,11 @@
     animation:breathe 4.5s ease-in-out infinite;
   }
   @keyframes breathe{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.07);opacity:.12}}
+  .moon.paused{filter:brightness(.62) saturate(.7)}
+  .moon.paused::after{animation:none;opacity:.35;border-style:dashed}
+  .rec-ctrl{margin-top:22px;display:flex;justify-content:center}
+  .rec-ctrl .ghost{min-width:9em;padding:10px 22px;font-size:15px;background:var(--field)}
+  .rec-ctrl .ghost.resume{border-color:var(--moon);color:var(--moon)}
   .status{margin:24px 0 0;font-size:14px;color:var(--muted);text-align:center;max-width:26em}
   .status.warn{color:var(--moon)}
 
@@ -121,6 +126,25 @@
   .graph-wrap{margin-top:14px;background:var(--surface);border-radius:18px;padding:12px 12px 8px;border:1px solid rgba(169,200,255,.08)}
   #graph{display:block;width:100%;height:190px;cursor:pointer;touch-action:manipulation}
   .axis{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-height:20px;margin-top:4px}
+  .glegend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:6px 0 0;font-size:12px;color:var(--muted)}
+  .glegend span{display:inline-flex;align-items:center;gap:6px}
+  .glegend i{display:inline-block;width:14px;height:10px;border-radius:2px}
+  .glegend .k-pause{background:rgba(244,235,200,.22)}
+  .glegend .k-gap{background:repeating-linear-gradient(135deg,rgba(155,164,204,.55) 0 1.5px,transparent 1.5px 4px)}
+
+  /* いびきの種類 */
+  .types{margin-top:22px}
+  .types .lead-s{margin:6px 0 0;font-size:14.5px}
+  .typebar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:rgba(169,200,255,.08);margin-top:10px}
+  .typebar span{display:block;height:100%}
+  .t-ga{background:var(--snore)}
+  .t-zu{background:var(--star)}
+  .t-mid{background:rgba(155,164,204,.4)}
+  .tlegend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted);margin-top:8px;font-variant-numeric:tabular-nums}
+  .tlegend span{display:inline-flex;align-items:center;gap:6px}
+  .tlegend span::before{content:"";width:9px;height:9px;border-radius:3px;background:var(--c)}
+  .types .data-actions{margin-top:12px}
+  .ghost:disabled{opacity:.55;cursor:default}
 
   .player{margin-top:14px}
   audio{width:100%;height:40px;display:block}
@@ -184,6 +208,13 @@
   .bar{flex:1;min-width:0;height:100%;display:flex;align-items:flex-end;justify-content:center;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
   .bar i{display:block;width:100%;max-width:26px;background:var(--snore);opacity:.8;border-radius:4px 4px 0 0}
   .bar[aria-pressed="true"] i{opacity:1;box-shadow:0 0 0 2px var(--moon)}
+  .sbar{display:flex;flex-direction:column-reverse;width:100%;max-width:26px;height:100%;border-radius:4px 4px 0 0;overflow:hidden}
+  .bar .sbar i{max-width:none;border-radius:0;opacity:.85;box-shadow:none}
+  .bar .sbar .t-ga{background:var(--snore)}
+  .bar .sbar .t-zu{background:var(--star)}
+  .bar .sbar .t-mid{background:rgba(155,164,204,.4)}
+  .bar[aria-pressed="true"] .sbar{box-shadow:0 0 0 2px var(--moon)}
+  .bar[aria-pressed="true"] .sbar i{opacity:1;box-shadow:none}
   .bar:focus-visible{outline:2px solid var(--star);outline-offset:2px}
   .gridline{position:absolute;left:0;right:0;border-top:1px solid rgba(169,200,255,.1);pointer-events:none}
   .gridline span{position:absolute;left:0;bottom:2px;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -225,14 +256,17 @@
   .notice .hint{margin-top:10px}
 
   /* 録音中の暗い画面 */
+  /* 有機ELの画面では、黒い部分は光らず電気もほとんど使わない。文字は暗くし、焼き付かないよう1分ごとに場所を変える */
   #dim{
     position:fixed;inset:0;z-index:20;background:#000;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
-    color:rgba(233,236,255,.3);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    color:rgba(233,236,255,.2);cursor:pointer;
   }
-  .dim-time{font-size:46px;font-weight:500;letter-spacing:.04em;font-variant-numeric:tabular-nums;margin:0}
-  .dim-hint{font-size:13px;margin:0;display:flex;align-items:center;gap:8px}
-  .rec-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,143,163,.55)}
+  .dim-inner{display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform 1.2s ease}
+  .dim-time{font-size:42px;font-weight:500;letter-spacing:.04em;font-variant-numeric:tabular-nums;margin:0}
+  .dim-hint{font-size:12.5px;margin:0;display:flex;align-items:center;gap:8px}
+  .rec-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,143,163,.4)}
+  #dim.paused .rec-dot{background:rgba(244,235,200,.35)}
 
   @media (prefers-reduced-motion: reduce){
     .moon.on::after{animation:none;opacity:.4}
@@ -258,6 +292,9 @@
         <span class="moon-main" id="moonMain">録音開始</span>
         <span class="moon-sub" id="moonSub">枕元に置いてタップ</span>
       </button>
+      <div class="rec-ctrl" id="recCtrl" hidden>
+        <button type="button" class="ghost" id="pauseBtn">一時停止</button>
+      </div>
       <p class="status" id="status" role="status">充電しながら枕元に置き、月をタップして録音します</p>
     </section>
 
@@ -276,15 +313,18 @@
         <canvas id="graph" role="img" aria-label="夜間の音量グラフ"></canvas>
         <div class="axis"><span id="axisStart"></span><span id="axisEnd"></span></div>
       </div>
+      <p class="glegend" id="graphLegend" hidden></p>
 
       <div class="player" id="player" hidden>
         <audio id="audio" controls preload="metadata"></audio>
         <div class="player-row">
-          <p class="hint">グラフをタップすると、その時刻から再生します</p>
+          <p class="hint" id="playerHint">グラフをタップすると、その時刻から再生します</p>
           <button type="button" class="textbtn" id="keepAudio" aria-pressed="false">この夜の録音を残す</button>
         </div>
       </div>
-      <p class="hint" id="audioGone" hidden>この夜の音声は、保存期間を過ぎたため削除しました。グラフと数値は残っています。</p>
+      <p class="hint" id="audioGone" hidden></p>
+
+      <div class="types" id="typeBox" hidden></div>
 
       <div class="night-factors" id="nightFactors" hidden>
         <span class="label">この夜のこと</span>
@@ -350,8 +390,10 @@
 </main>
 
 <div id="dim" hidden>
-  <p class="dim-time" id="dimTime">00:00:00</p>
-  <p class="dim-hint"><span class="rec-dot"></span>録音中　タップで画面を戻す</p>
+  <div class="dim-inner" id="dimInner">
+    <p class="dim-time" id="dimTime">00:00:00</p>
+    <p class="dim-hint"><span class="rec-dot"></span><span id="dimLabel">録音中</span>　タップで画面を戻す</p>
+  </div>
 </div>
 
 <script>
@@ -371,12 +413,20 @@ const FIREBASE_CONFIG = {
   appId: '1:1085118344095:web:ddc25045bede2c5b01ebaa'
 };
 const FIREBASE_SDK = 'https://www.gstatic.com/firebasejs/12.19.0/';
-let db, stream, actx, analyser, recorder, chunks = [], samples = [];
-let timer, sampleTimer, startTime, wakeLock = null;
+let db, wakeLock = null;
 let viewing = null, audioURL = null, dimTimer = null;
+// 録音中の夜（一時停止しているあいだも on のまま）
+const rec = { on: false, paused: false, stopping: false, id: 0, actx: null, meter: null, src: null, stream: null, recorder: null, recStopped: null, mp: null, parts: [], pauses: [], uiTimer: null, lastSave: 0, hiddenAt: null };
+let samples = [], startTime = 0;
 
-const recording = () => !!recorder && recorder.state === 'recording';
+const recording = () => rec.on;
 const last = arr => arr[arr.length - 1];
+const nowT = () => Math.round((Date.now() - startTime) / 1000);
+const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+// いびきの種類の境目（800Hzより上と下の音の強さの比、dB）。研究の数値をもとにした初期値
+// 研究の目安：のどちんこのまわりが震えるいびき 約-8.5dB、舌のつけ根のいびき 約+7dB（Agrawal ほか 2002）
+const TYPE_GA = -4, TYPE_ZU = -9;
 
 /* ---------- 小さな道具 ---------- */
 function h(tag, props, ...kids) {
@@ -407,9 +457,27 @@ const openDB = () => new Promise((res, rej) => {
 });
 const store = mode => db.transaction(STORE, mode).objectStore(STORE);
 const putSession = s => new Promise((res, rej) => { const q = store('readwrite').put(s); q.onsuccess = res; q.onerror = () => rej(q.error); });
-const getAllSessions = () => new Promise(res => { if (!db) return res([]); const q = store('readonly').getAll(); q.onsuccess = () => res(q.result); q.onerror = () => res([]); });
-const deleteSession = id => new Promise(res => { const q = store('readwrite').delete(id); q.onsuccess = res; });
-const getSession = id => new Promise(res => { const q = store('readonly').get(id); q.onsuccess = () => res(q.result); q.onerror = () => res(undefined); });
+// 以前の版の記録（音声1つ、中断なし）も同じ形で扱えるようにそろえる
+function norm(s) {
+  if (!s) return s;
+  if (!Array.isArray(s.parts)) {
+    s.parts = s.blob ? [{ blob: s.blob, t0: 0, t1: s.duration || 0 }] : [];
+    delete s.blob;
+  }
+  if (!Array.isArray(s.pauses)) s.pauses = [];
+  return s;
+}
+// 録音中に1分ごとに保存している途中の記録（partial）は、ふだんは除く
+const getAllSessions = (withPartial = false) => new Promise(res => {
+  if (!db) return res([]);
+  const q = store('readonly').getAll();
+  q.onsuccess = () => res(q.result.filter(s => withPartial || !s.partial).map(norm));
+  q.onerror = () => res([]);
+});
+const deleteSession = id => new Promise(res => { const q = store('readwrite').delete(id); q.onsuccess = res; q.onerror = res; });
+const getSession = id => new Promise(res => { const q = store('readonly').get(id); q.onsuccess = () => res(norm(q.result)); q.onerror = () => res(undefined); });
+const audioParts = s => (s && s.parts) || [];
+const hasAudio = s => audioParts(s).length > 0;
 
 /* ---------- 表示用の書式 ---------- */
 const pad = n => String(n).padStart(2, '0');
@@ -440,24 +508,70 @@ const rmsDb = buf => {
   for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
   return 20 * Math.log10(Math.sqrt(s / buf.length) + 1e-9);
 };
-// いびき候補：しきい値以上が2秒以上続いた区間
+// いびき候補：しきい値以上が2秒以上続いた区間。記録が途切れたところ（一時停止など）では区切る
 const findEvents = (data, thr) => {
   const ev = []; let run = null;
   const close = () => { if (run && run.n >= 2) ev.push(run); run = null; };
-  for (const s of data) {
-    if (s.db >= thr) { if (!run) run = { start: s.t, end: s.t, n: 0 }; run.end = s.t; run.n++; }
-    else close();
+  for (let i = 0; i < data.length; i++) {
+    const s = data[i];
+    if (run && s.t - data[i - 1].t > 2) close();
+    if (s.db >= thr) {
+      if (!run) run = { start: s.t, end: s.t, n: 0, i0: i, i1: i };
+      run.end = s.t; run.i1 = i; run.n++;
+    } else close();
   }
   close();
   return ev;
 };
 const eventTotal = ev => ev.reduce((a, e) => a + (e.n || (e.end - e.start + 1)), 0);
+const median = a => { const b = a.slice().sort((x, y) => x - y); return b.length ? b[Math.floor(b.length / 2)] : null; };
+
+// 中断（一時停止）と、録れていなかった時間（画面ロックなどで記録が5秒以上途切れたところ）
+function breaksOf(data, pauses, openEnd) {
+  const out = [];
+  for (const p of pauses || []) {
+    const end = p.end ?? openEnd;
+    if (end == null) continue;
+    out.push({ start: p.start, end: Math.max(p.start, end), kind: p.kind === 'lost' ? 'gap' : 'pause' });
+  }
+  for (let i = 1; i < data.length; i++) {
+    const a = data[i - 1].t, b = data[i].t;
+    if (b - a <= 5) continue;
+    if (out.some(x => x.start < b && x.end > a)) continue; // 一時停止で説明がつく
+    out.push({ start: a, end: b - 1, kind: 'gap' });
+  }
+  return out.sort((x, y) => x.start - y.start);
+}
+const spanOf = (bk, kind) => bk.filter(b => b.kind === kind).reduce((a, b) => a + (b.end - b.start), 0);
+
+// いびき候補ごとに、800Hzより上の音がどれくらい含まれるかで種類を分ける
+const typeOf = hf => hf >= TYPE_GA ? 'ga' : hf <= TYPE_ZU ? 'zu' : 'mid';
+function snoreTypes(d, ev, thr) {
+  const ty = { ga: 0, zu: 0, mid: 0, known: 0, events: 0, ex: { ga: null, zu: null } };
+  for (const e of ev) {
+    const hs = [];
+    for (let i = e.i0; i <= e.i1; i++) if (d[i].db >= thr && d[i].hf != null) hs.push(d[i].hf);
+    if (!hs.length) continue;
+    const m = median(hs), k = typeOf(m);
+    ty[k] += hs.length;
+    ty.known += hs.length;
+    ty.events++;
+    // 例として聞くのは、境目からはっきり離れていて、いちばん長く続いたもの
+    if (k !== 'mid') {
+      const clear = k === 'ga' ? m >= TYPE_GA + 2 : m <= TYPE_ZU - 2;
+      const cur = ty.ex[k];
+      const score = hs.length + (clear ? 1000 : 0);
+      if (!cur || score > cur.score) ty.ex[k] = { start: e.start, end: e.end, score };
+    }
+  }
+  return ty;
+}
 
 // 1夜分の数値をまとめて計算する
 const statsCache = new Map();
-function nightStats(s, thr = s.threshold, useCache = true) {
+function nightStats(s, thr = s.threshold, useCache = true, openEnd = null) {
   const d = s.samples || [];
-  const key = `${s.id}:${thr}:${d.length}`;
+  const key = `${s.id}:${thr}:${d.length}:${s.updatedAt || 0}`;
   if (useCache && statsCache.has(key)) return statsCache.get(key);
 
   const ev = findEvents(d, thr);
@@ -483,11 +597,13 @@ function nightStats(s, thr = s.threshold, useCache = true) {
     if (ei < ev.length && p.t >= ev[ei].start && p.db >= thr) { hourSnore[hr]++; loudSum += p.db; loudN++; }
   }
 
-  // 30秒以内の切れ目はつなげて「連続したいびき」とみなす
+  // 30秒以内の切れ目はつなげて「連続したいびき」とみなす（記録が途切れたところはつなげない）
   let longest = 0, cur = null;
   for (const e of ev) {
-    if (cur && e.start - cur.end <= 30) cur.end = e.end;
-    else { if (cur) longest = Math.max(longest, cur.end - cur.start + 1); cur = { start: e.start, end: e.end }; }
+    let join = !!cur && e.start - cur.end <= 30;
+    if (join) for (let i = cur.i1 + 1; i <= e.i0; i++) if (d[i].t - d[i - 1].t > 5) { join = false; break; }
+    if (join) { cur.end = e.end; cur.i1 = e.i1; }
+    else { if (cur) longest = Math.max(longest, cur.end - cur.start + 1); cur = { start: e.start, end: e.end, i1: e.i1 }; }
   }
   if (cur) longest = Math.max(longest, cur.end - cur.start + 1);
 
@@ -498,29 +614,47 @@ function nightStats(s, thr = s.threshold, useCache = true) {
     if (r > peakR) { peakR = r; peakHour = i; }
   }
 
+  const bk = breaksOf(d, s.pauses, openEnd);
+  const userPauses = (s.pauses || []).filter(p => p.kind !== 'lost' && (p.end ?? openEnd) != null);
+
   const res = {
     thr, measured, count: ev.length, snoreSec,
     ratio: measured ? snoreSec / measured : 0,
     baseline, loud: loudN ? loudSum / loudN - baseline : null,
     longest, hourRec, hourSnore, peakHour, peakR,
+    pauseN: userPauses.length, pauseSec: spanOf(bk, 'pause'), gapSec: spanOf(bk, 'gap'),
+    types: snoreTypes(d, ev, thr),
     valid: measured >= MIN_VALID
   };
   if (useCache) statsCache.set(key, res);
   return res;
 }
 
-// 長い録音でも描画が重くならないよう、画面の幅に合わせて間引く（各区間の最大値を使う）
-const bucket = (data, cols) => {
-  const n = data.length, out = [];
-  cols = Math.max(2, Math.min(n, Math.floor(cols)));
-  for (let i = 0; i < cols; i++) {
-    const a = Math.floor(i * n / cols), b = Math.max(a + 1, Math.floor((i + 1) * n / cols));
-    let m = -Infinity;
-    for (let j = a; j < b && j < n; j++) if (data[j].db > m) m = data[j].db;
-    out.push({ t: data[Math.min(b - 1, n - 1)].t, db: m });
+// 長い録音でも描画が重くならないよう、時間で区切った列ごとにいちばん大きい音を使う。
+// 記録がない列は null（線を途切れさせる）
+function waveCols(data, T, maxCols) {
+  const cols = Math.max(2, Math.min(Math.floor(maxCols), Math.ceil(T)));
+  const v = new Array(cols).fill(null);
+  for (const p of data) {
+    const i = Math.max(0, Math.min(cols - 1, Math.floor((p.t - .5) / T * cols)));
+    if (v[i] == null || p.db > v[i]) v[i] = p.db;
   }
-  return out;
-};
+  return v;
+}
+function drawWave(g, v, W, y, base, stroke) {
+  const segs = [];
+  let seg = null;
+  v.forEach((db, i) => {
+    if (db == null) { seg = null; return; }
+    if (!seg) segs.push(seg = []);
+    seg.push({ x: (i + .5) / v.length * W, y: y(db) });
+  });
+  if (segs.length && segs[0][0].x < W / v.length) segs[0][0].x = 0;
+  for (const s of segs) {
+    if (s.length === 1) s.push({ x: s[0].x + 1, y: s[0].y });
+    stroke(s, base);
+  }
+}
 
 /* ---------- チェック項目 ---------- */
 const ALCOHOL = ['飲まない', '少し', 'たくさん'];
@@ -694,10 +828,39 @@ function stopTwinkle() {
 }
 
 /* ---------- 音量グラフ ---------- */
+let hatchCanvas = null;
+function hatch(g) {
+  if (!hatchCanvas) {
+    hatchCanvas = document.createElement('canvas');
+    hatchCanvas.width = hatchCanvas.height = 6;
+    const c = hatchCanvas.getContext('2d');
+    c.strokeStyle = 'rgba(155,164,204,.45)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(0, 6); c.lineTo(6, 0);
+    c.moveTo(-1, 1); c.lineTo(1, -1);
+    c.moveTo(5, 7); c.lineTo(7, 5);
+    c.stroke();
+  }
+  return g.createPattern(hatchCanvas, 'repeat');
+}
+
+// 今グラフに出している夜（過去の夜を開いていなければ、今夜の録音）
+function currentNight() {
+  if (viewing) return { s: viewing, live: false, openEnd: null };
+  return { s: { id: 'live', start: startTime, samples, pauses: rec.pauses }, live: true, openEnd: rec.on ? nowT() : null };
+}
+function spanT(s, openEnd) {
+  let T = s.samples.length ? last(s.samples).t : 0;
+  for (const p of s.pauses || []) T = Math.max(T, p.end ?? openEnd ?? 0);
+  return Math.max(T, 1);
+}
+
 function drawGraph() {
   const c = $('graph');
   const { g, W, H } = sizeCanvas(c, 190);
-  const data = viewing ? viewing.samples : samples;
+  const { s, live, openEnd } = currentNight();
+  const data = s.samples;
   const thr = +$('threshold').value;
   const padT = 8, padB = 8, ih = H - padT - padB;
   const minDb = -60, maxDb = 0;
@@ -711,21 +874,39 @@ function drawGraph() {
     g.beginPath(); g.moveTo(0, yy); g.lineTo(W, yy); g.stroke();
   }
 
-  if (data.length < 2) {
+  const msg = text => {
     g.fillStyle = 'rgba(233,236,255,.45)';
     g.font = '14px "Zen Maru Gothic", sans-serif';
     g.textAlign = 'center';
-    g.fillText(recording() ? '音を聞いています…' : '録音を始めると、ここに音の波が出ます', W / 2, H / 2);
+    g.fillText(text, W / 2, H / 2);
+  };
+  if (data.length < 2 && !(live && rec.paused)) {
+    msg(recording() ? '音を聞いています…' : '録音を始めると、ここに音の波が出ます');
     return;
   }
 
-  const T = Math.max(last(data).t, 1);
-  const x = t => Math.min(W, t / T * W);
+  const T = spanT(s, openEnd);
+  const x = t => Math.max(0, Math.min(W, t / T * W));
+
+  // 中断（一時停止）と、録れていなかった時間
+  g.font = '11px "Zen Maru Gothic", sans-serif';
+  g.textAlign = 'center';
+  for (const b of breaksOf(data, s.pauses, openEnd)) {
+    const x1 = x(b.start), w = Math.max(x(b.end) - x1, 2);
+    const pause = b.kind === 'pause';
+    g.fillStyle = pause ? 'rgba(244,235,200,.08)' : hatch(g);
+    g.fillRect(x1, padT, w, ih);
+    if (w > (pause ? 34 : 82)) {
+      g.fillStyle = pause ? 'rgba(244,235,200,.6)' : 'rgba(155,164,204,.8)';
+      g.fillText(pause ? '中断' : '録れていない', x1 + w / 2, padT + 14);
+    }
+  }
+  if (data.length < 2) { msg('一時停止中'); return; }
 
   // いびき候補の区間（重なっても色が濃くならないよう、1つの図形としてまとめて塗る）
   const bands = new Path2D(), ticks = new Path2D();
   for (const e of findEvents(data, thr)) {
-    const x1 = x(e.start), w = Math.max(x(e.end + 1) - x1, 2);
+    const x1 = x(e.start - .5), w = Math.max(x(e.end + .5) - x1, 2);
     bands.rect(x1, padT, w, ih);
     ticks.rect(x1, H - 3, w, 3);
   }
@@ -734,28 +915,27 @@ function drawGraph() {
   g.fillStyle = '#ff8fa3';
   g.fill(ticks);
 
-  // 音量の波
-  const pts = bucket(data, W).map(p => ({ x: x(p.t), y: y(p.db) }));
-  pts[0].x = 0;
+  // 音量の波（記録が途切れたところでは線も途切れる）
   const fill = g.createLinearGradient(0, padT, 0, H);
   fill.addColorStop(0, 'rgba(169,200,255,.34)');
   fill.addColorStop(1, 'rgba(169,200,255,0)');
-  g.beginPath();
-  g.moveTo(0, H - padB);
-  pts.forEach(p => g.lineTo(p.x, p.y));
-  g.lineTo(last(pts).x, H - padB);
-  g.closePath();
-  g.fillStyle = fill;
-  g.fill();
-
-  g.beginPath();
-  pts.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y));
-  g.strokeStyle = '#a9c8ff';
-  g.lineWidth = 1.5;
-  g.shadowColor = 'rgba(169,200,255,.8)';
-  g.shadowBlur = 6;
-  g.stroke();
-  g.shadowBlur = 0;
+  drawWave(g, waveCols(data, T, W), W, y, H - padB, (seg, base) => {
+    g.beginPath();
+    g.moveTo(seg[0].x, base);
+    seg.forEach(p => g.lineTo(p.x, p.y));
+    g.lineTo(last(seg).x, base);
+    g.closePath();
+    g.fillStyle = fill;
+    g.fill();
+    g.beginPath();
+    seg.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y));
+    g.strokeStyle = '#a9c8ff';
+    g.lineWidth = 1.5;
+    g.shadowColor = 'rgba(169,200,255,.8)';
+    g.shadowBlur = 6;
+    g.stroke();
+    g.shadowBlur = 0;
+  });
 
   // 判定ライン
   g.setLineDash([5, 5]);
@@ -766,12 +946,22 @@ function drawGraph() {
 
   // 再生位置
   const au = $('audio');
-  if (viewing && !$('player').hidden && au.currentTime > 0 && au.currentTime <= T + 1) {
-    const px = x(au.currentTime);
+  if (!live && curPart && !$('player').hidden && au.currentTime > 0) {
+    const px = x(curPart.t0 + au.currentTime);
     g.strokeStyle = '#f4ebc8';
     g.lineWidth = 1.5;
     g.beginPath(); g.moveTo(px, padT); g.lineTo(px, H); g.stroke();
   }
+}
+
+function renderLegend(s, openEnd) {
+  const kinds = new Set(breaksOf(s.samples, s.pauses, openEnd).map(b => b.kind));
+  const el = $('graphLegend');
+  el.hidden = !kinds.size;
+  el.replaceChildren(
+    kinds.has('pause') ? h('span', null, h('i', { class: 'k-pause' }), '中断（一時停止）') : null,
+    kinds.has('gap') ? h('span', null, h('i', { class: 'k-gap' }), '録れていない時間') : null
+  );
 }
 
 function renderNightStats(st, live) {
@@ -789,22 +979,78 @@ function renderNightStats(st, live) {
     ['大きさ', st.loud != null ? `静かなときより +${Math.max(0, Math.round(st.loud))}dB` : 'ー'],
     ['多かった時間帯', st.peakHour != null && st.peakR > 0 ? `${st.peakHour}時台` : 'ー']
   ];
+  if (st.pauseN) rows.push(['中断', `${st.pauseN}回（${durJa(st.pauseSec)}）`]);
+  if (st.gapSec >= 30) rows.push(['録れていない時間', durJa(st.gapSec)]);
   el.replaceChildren(...rows.map(([k, v, cls]) => h('div', { class: cls }, h('dt', null, k), h('dd', null, v))));
 }
 
+/* ---------- いびきの種類 ---------- */
+const TYPE_INFO = {
+  ga: { name: 'ガー型', desc: '高めの音を含む、ひらいた音' },
+  zu: { name: 'ズー型', desc: '低くこもった音' }
+};
+const MIN_TYPED = 5; // 種類がわかった秒数がこれより少ない夜は、割合を出さない
+const typeShares = ty => { const k = ty.known || 1; return { ga: ty.ga / k, zu: ty.zu / k, mid: ty.mid / k }; };
+const typeVerdict = sh => sh.ga - sh.zu >= .15 ? 'ga' : sh.zu - sh.ga >= .15 ? 'zu' : 'both';
+const typeBar = sh => h('div', { class: 'typebar', role: 'img', 'aria-label': `ガー型 ${pct(sh.ga)}、どちらとも言えない ${pct(sh.mid)}、ズー型 ${pct(sh.zu)}` },
+  h('span', { class: 't-ga', style: `width:${sh.ga * 100}%` }),
+  h('span', { class: 't-mid', style: `width:${sh.mid * 100}%` }),
+  h('span', { class: 't-zu', style: `width:${sh.zu * 100}%` }));
+const typeLegend = sh => h('div', { class: 'tlegend' },
+  h('span', { style: '--c:var(--snore)' }, `ガー型 ${pct(sh.ga)}`),
+  h('span', { style: '--c:var(--star)' }, `ズー型 ${pct(sh.zu)}`),
+  sh.mid > 0 ? h('span', { style: '--c:rgba(155,164,204,.6)' }, `どちらとも言えない ${pct(sh.mid)}`) : null);
+
+function renderTypeBox(st, live) {
+  const box = $('typeBox');
+  const s = live ? null : viewing;
+  const scanning = s && scan.id === s.id;
+  if (!st || (!st.count && !scanning)) { box.hidden = true; return; }
+  const ty = st.types;
+  const kids = [h('h3', null, 'いびきの種類')];
+  if (scanning) {
+    kids.push(
+      h('p', { class: 'hint' }, `録音を聞いて調べています… ${scan.done}/${scan.total}。音は鳴りません。終わるまで、この画面のままお待ちください。`),
+      h('div', { class: 'data-actions' }, h('button', { type: 'button', class: 'ghost', onclick: () => { scan.cancel = true; } }, 'やめる')));
+  } else if (ty.known >= MIN_TYPED) {
+    const sh = typeShares(ty), v = typeVerdict(sh);
+    kids.push(
+      h('p', { class: 'lead-s' }, v === 'both' ? 'ガー型とズー型の両方が出ています。' : `${TYPE_INFO[v].name}（${TYPE_INFO[v].desc}）が多めです。`),
+      typeBar(sh), typeLegend(sh));
+    if (s && hasAudio(s)) {
+      const btns = ['ga', 'zu'].filter(k => ty.ex[k]).map(k =>
+        h('button', { type: 'button', class: 'ghost', onclick: () => playExample(ty.ex[k]) }, `${TYPE_INFO[k].name}の例を聞く`));
+      if (btns.length) kids.push(h('div', { class: 'data-actions' }, btns));
+    }
+    kids.push(h('p', { class: 'hint' }, 'ガー型は高めの音を含むひらいた音で、口で息をしているときに多い音です。ズー型は低くこもった音で、鼻で息をしているときに多い音です。原因と対策は「分析」タブにあります。'));
+    if (s && s.typeScanned) kids.push(h('p', { class: 'hint' }, `録音から、いびき候補${ty.events}回分を調べた結果です。`));
+  } else if (live) {
+    kids.push(h('p', { class: 'hint' }, 'いびき候補が出ると、ここにいびきの種類（ガー型・ズー型）が出ます。'));
+  } else if (s && hasAudio(s) && !s.typeScanned) {
+    kids.push(
+      h('p', { class: 'hint' }, 'この夜は、いびきの種類を調べる機能ができる前に録音した夜です。残っている録音を聞いて調べられます（1分ほどかかります。そのあいだ音は鳴りません）。'),
+      h('div', { class: 'data-actions' }, h('button', { type: 'button', class: 'ghost', disabled: !!scan.id || recording(), onclick: () => startScan(s) }, '録音から調べる')));
+  } else {
+    kids.push(h('p', { class: 'hint' }, s && s.typeScanned
+      ? '録音から調べましたが、種類を判定できるいびきが見つかりませんでした。'
+      : 'この夜は、いびきの種類のデータがありません。音声も残っていないため、あとから調べることもできません。'));
+  }
+  if (s && scan.msgId === s.id && scan.msg && !scanning) kids.push(h('p', { class: 'hint' }, scan.msg));
+  box.replaceChildren(...kids);
+  box.hidden = false;
+}
+
 function refreshView() {
-  const data = viewing ? viewing.samples : samples;
+  const { s, live, openEnd } = currentNight();
   const thr = +$('threshold').value;
   drawGraph();
-  let st = null;
-  if (data.length >= 2) {
-    st = viewing ? nightStats(viewing, thr) : nightStats({ id: 'live', start: startTime, samples: data }, thr, false);
-  }
-  renderNightStats(st, !viewing);
-  const s0 = viewing ? viewing.start : startTime;
-  if (data.length > 1 && s0) {
-    $('axisStart').textContent = hm(s0);
-    $('axisEnd').textContent = hm(s0 + last(data).t * 1000);
+  const st = s.samples.length >= 2 ? (live ? nightStats(s, thr, false, openEnd) : nightStats(s, thr)) : null;
+  renderNightStats(st, live);
+  renderTypeBox(st, live);
+  renderLegend(s, openEnd);
+  if (s.start && (s.samples.length > 1 || (live && rec.on))) {
+    $('axisStart').textContent = hm(s.start);
+    $('axisEnd').textContent = hm(s.start + spanT(s, openEnd) * 1000);
   } else {
     $('axisStart').textContent = '';
     $('axisEnd').textContent = '';
@@ -813,18 +1059,52 @@ function refreshView() {
 }
 
 /* ---------- 再生 ---------- */
-function fixDuration(au) {
-  // 一部ブラウザの録音ファイルは長さ情報がなく、シークできないための対策
-  au.addEventListener('loadedmetadata', function onMeta() {
-    au.removeEventListener('loadedmetadata', onMeta);
-    if (au.duration === Infinity) {
-      au.currentTime = 1e101;
-      au.addEventListener('timeupdate', function onTu() {
-        au.removeEventListener('timeupdate', onTu);
-        au.currentTime = 0;
-      });
-    }
+// 一時停止をはさんだ夜は、録音がいくつかに分かれている（parts）。t0 はその録音が始まった時刻（秒）
+let curPart = null, partReady = Promise.resolve(), exampleT = null;
+const partFor = (parts, t) => parts.find(q => t >= q.t0 && t <= q.t1 + 1) || parts.find(q => q.t0 > t) || last(parts);
+
+function loadPart(p) {
+  if (curPart === p) return partReady;
+  const au = $('audio');
+  if (audioURL) URL.revokeObjectURL(audioURL);
+  audioURL = URL.createObjectURL(p.blob);
+  curPart = p;
+  partReady = new Promise(res => {
+    const tm = setTimeout(res, 8000);
+    au.addEventListener('loadedmetadata', () => {
+      // 一部ブラウザの録音ファイルは長さ情報がなく、そのままではシークできないための対策
+      if (au.duration === Infinity) {
+        au.addEventListener('timeupdate', () => { au.currentTime = 0; clearTimeout(tm); res(); }, { once: true });
+        au.currentTime = 1e101;
+      } else { clearTimeout(tm); res(); }
+    }, { once: true });
   });
+  au.src = audioURL;
+  return partReady;
+}
+async function playAt(t) {
+  if (!viewing) return;
+  const parts = audioParts(viewing);
+  if (!parts.length) return;
+  const p = partFor(parts, t);
+  const au = $('audio');
+  const switching = curPart !== p;
+  const ready = loadPart(p);
+  if (switching) {
+    // タップの処理の中で再生を始めておく（iPhoneは、あとからの再生を止めることがあるため）。位置を合わせるまで音は消す
+    au.muted = true;
+    const first = au.play();
+    if (first) first.catch(() => {});
+  }
+  await ready;
+  au.currentTime = Math.max(0, t - p.t0);
+  au.muted = false;
+  au.play().catch(() => {});
+}
+async function playExample(e) {
+  clearTimeout(exampleT);
+  await playAt(e.start - 1.5);
+  exampleT = setTimeout(() => $('audio').pause(), Math.min(e.end - e.start + 4, 10) * 1000);
 }
 function setKeepButton(s) {
   const b = $('keepAudio');
@@ -832,18 +1112,27 @@ function setKeepButton(s) {
   b.textContent = s.keepAudio ? '録音を残す設定中（タップで解除）' : 'この夜の録音を残す';
 }
 function showPlayer(s) {
-  if (audioURL) { URL.revokeObjectURL(audioURL); audioURL = null; }
   const au = $('audio');
-  if (!s.blob) {
+  const parts = audioParts(s);
+  au.pause();
+  clearTimeout(exampleT);
+  curPart = null;
+  if (!parts.length) {
     au.removeAttribute('src');
+    au.load();
+    if (audioURL) { URL.revokeObjectURL(audioURL); audioURL = null; }
     $('player').hidden = true;
+    $('audioGone').textContent = s.audioDeleted ? 'この夜の音声は、保存期間を過ぎたため削除しました。グラフと数値は残っています。'
+      : s.recovered ? 'この夜は、途中で止まった録音から数値を復元したため、音声はありません。'
+      : 'この夜の音声は、この端末にはありません。グラフと数値は残っています。';
     $('audioGone').hidden = false;
     return;
   }
-  audioURL = URL.createObjectURL(s.blob);
-  fixDuration(au);
-  au.src = audioURL;
+  loadPart(parts[0]);
   setKeepButton(s);
+  $('playerHint').textContent = parts.length > 1
+    ? `グラフをタップすると、その時刻から再生します（中断で録音が${parts.length}つに分かれています）`
+    : 'グラフをタップすると、その時刻から再生します';
   $('player').hidden = false;
   $('audioGone').hidden = true;
 }
@@ -852,19 +1141,25 @@ function hidePlayer() {
   au.pause();
   au.removeAttribute('src');
   au.load();
+  clearTimeout(exampleT);
+  curPart = null;
   if (audioURL) { URL.revokeObjectURL(audioURL); audioURL = null; }
   $('player').hidden = true;
   $('audioGone').hidden = true;
 }
 $('audio').addEventListener('timeupdate', () => { if (viewing) drawGraph(); });
+$('audio').addEventListener('ended', () => {
+  // 次の録音（一時停止のあと）に続けて再生する
+  if (!viewing || !curPart) return;
+  const parts = audioParts(viewing), i = parts.indexOf(curPart);
+  if (i >= 0 && i < parts.length - 1) playAt(parts[i + 1].t0);
+});
 
 $('graph').addEventListener('click', e => {
-  if (!viewing || !viewing.blob || viewing.samples.length < 2) return;
+  if (!viewing || !hasAudio(viewing) || viewing.samples.length < 2) return;
+  clearTimeout(exampleT);
   const r = e.currentTarget.getBoundingClientRect();
-  const T = Math.max(last(viewing.samples).t, 1);
-  const au = $('audio');
-  au.currentTime = Math.max(0, (e.clientX - r.left) / r.width * T);
-  au.play().catch(() => {});
+  playAt(Math.max(0, (e.clientX - r.left) / r.width * spanT(viewing, null)));
 });
 
 $('keepAudio').addEventListener('click', async () => {
@@ -873,6 +1168,143 @@ $('keepAudio').addEventListener('click', async () => {
   setKeepButton(viewing);
   try { await putSession(viewing); } catch (e) {}
 });
+
+/* ---------- 録音から、いびきの種類をあとから調べる ---------- */
+// 種類を調べる機能ができる前の夜のために、いびき候補の部分だけ（最大20回分）を音を出さずに再生して調べる
+const scan = { id: null, done: 0, total: 0, cancel: false, msg: '', msgId: null };
+const waitEvent = (el, name, ms) => new Promise(res => {
+  const tm = setTimeout(() => res(false), ms);
+  el.addEventListener(name, () => { clearTimeout(tm); res(true); }, { once: true });
+});
+async function readyAudio(au) {
+  if (au.readyState < 1) await waitEvent(au, 'loadedmetadata', 15000);
+  if (au.duration === Infinity) {
+    au.currentTime = 1e101;
+    await waitEvent(au, 'timeupdate', 20000);
+  }
+}
+function findSample(d, t) {
+  let lo = 0, hi = d.length - 1;
+  while (lo <= hi) {
+    const m = (lo + hi) >> 1;
+    if (d[m].t === t) return d[m];
+    if (d[m].t < t) lo = m + 1; else hi = m - 1;
+  }
+  return null;
+}
+
+function startScan(s) {
+  if (scan.id || recording()) return;
+  const parts = audioParts(s);
+  if (!parts.length) return;
+  const ev = findEvents(s.samples, s.threshold).filter(e => e.n >= 2);
+  const pick = ev.slice().sort((a, b) => b.n - a.n).slice(0, 20).sort((a, b) => a.start - b.start);
+  scan.msg = ''; scan.msgId = null;
+  if (!pick.length) {
+    s.typeScanned = Date.now();
+    refreshView();
+    return;
+  }
+  // タップの処理の中で、音の準備と最初の再生をしておく（iPhoneは、あとからの再生を止めることがあるため）
+  let ctx, au, an, url;
+  try {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    au = new Audio();
+    au.preload = 'auto';
+    const src = ctx.createMediaElementSource(au);
+    an = ctx.createAnalyser();
+    an.fftSize = 2048;
+    an.smoothingTimeConstant = 0;
+    const mute = ctx.createGain();
+    mute.gain.value = 0;
+    src.connect(an); an.connect(mute); mute.connect(ctx.destination);
+    ctx.resume().catch(() => {});
+    const p0 = partFor(parts, pick[0].start);
+    url = URL.createObjectURL(p0.blob);
+    au.src = url;
+    const unlock = au.play() || Promise.resolve();
+    Object.assign(scan, { id: s.id, done: 0, total: pick.length, cancel: false });
+    refreshView();
+    runScan(s, parts, pick, ctx, au, an, p0, url, unlock)
+      .then(r => r === 'cancel' ? 'やめました。' : r > 0 ? '' : '調べましたが、種類を判定できる音が見つかりませんでした。',
+        err => { console.warn('scan failed', err); return '録音を再生できなかったため、調べられませんでした。もう一度押してください。'; })
+      .then(msg => {
+        try { au.pause(); au.removeAttribute('src'); ctx.close(); } catch (e) {}
+        scan.id = null;
+        scan.msg = msg;
+        scan.msgId = s.id;
+        if (viewing && viewing.id === s.id) refreshView();
+        if (!$('panelAna').hidden) renderAnalysis();
+      });
+  } catch (e) {
+    scan.id = null;
+    scan.msg = 'このブラウザでは、録音から調べることができませんでした。';
+    scan.msgId = s.id;
+    refreshView();
+  }
+}
+
+async function runScan(s, parts, pick, ctx, au, an, part, url, unlock) {
+  const buf = new Float32Array(an.fftSize), bands = makeSpectrum(ctx.sampleRate);
+  const got = [];
+  try {
+    // タップのときに始めた再生が落ち着くのを待ってから止める（先に止めると、あとの再生が取り消される）
+    await unlock.catch(() => {});
+    au.pause();
+    await readyAudio(au);
+    for (let i = 0; i < pick.length && !scan.cancel; i++) {
+      const e = pick[i], p = partFor(parts, e.start);
+      if (p !== part) {
+        URL.revokeObjectURL(url);
+        url = URL.createObjectURL(p.blob);
+        au.src = url;
+        part = p;
+        await readyAudio(au);
+      }
+      const evStart = e.start - 1 - p.t0;                    // この録音の中での、いびき候補の始まり（秒）
+      const evEnd = Math.min(e.end, e.start + 3) - p.t0;      // 長いものは最初の3秒だけ
+      if (evEnd <= 0) continue;
+      au.currentTime = Math.max(0, evStart - .8);             // 少し前から聞いて、静かなときの音も測る
+      await waitEvent(au, 'seeked', 8000);
+      try { await au.play(); }
+      catch (err) { if (err && err.name === 'AbortError') await au.play(); else throw err; }
+      await new Promise(res => {
+        const began = performance.now();
+        const iv = setInterval(() => {
+          const x = au.currentTime;
+          an.getFloatTimeDomainData(buf);
+          const [lo, hi] = bands(buf, 0);
+          got.push({ t: p.t0 + Math.ceil(x), db: rmsDb(buf), lo, hi, pre: x < evStart });
+          if (x >= evEnd || au.ended || scan.cancel || performance.now() - began > 8000) { clearInterval(iv); res(); }
+        }, 50);
+      });
+      au.pause();
+      scan.done = i + 1;
+      if (viewing && viewing.id === s.id && !$('panelRec').hidden) renderTypeBox(nightStats(viewing), false);
+    }
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+  if (scan.cancel) return 'cancel';
+
+  // 静かなときの音：いびき候補の直前で、いちばん静かだった音（2割）の平均
+  const pre = got.filter(f => f.pre).sort((a, b) => a.db - b.db);
+  const q = pre.slice(0, Math.max(1, Math.ceil(pre.length * .2)));
+  const nlo = q.length ? mean(q.map(f => f.lo)) : 0, nhi = q.length ? mean(q.map(f => f.hi)) : 0;
+  // 1秒ごとに、いちばん大きかった瞬間の音で比を出す（録音中に調べるときと同じ）
+  const best = new Map();
+  for (const f of got) if (!f.pre) { const b = best.get(f.t); if (!b || f.db > b.db) best.set(f.t, f); }
+  let n = 0;
+  for (const [t, f] of best) {
+    const smp = findSample(s.samples, t);
+    if (smp && smp.hf == null && smp.db >= s.threshold) { smp.hf = hfOf(f.lo, f.hi, nlo, nhi); n++; }
+  }
+  s.typeScanned = Date.now();
+  s.updatedAt = Date.now();
+  await putSession(s);
+  scheduleSync();
+  return n;
+}
 
 /* ---------- この夜のチェック項目 ---------- */
 let saveT = null;
@@ -952,14 +1384,151 @@ function setStatus(text, warn = false) {
   $('status').classList.toggle('warn', warn);
 }
 
+/* ---------- 音の計測（ガー型/ズー型の判定にも使う） ---------- */
+// 2048点の音を周波数に分け、80〜800Hz と 800〜4000Hz の音の強さを返す
+function makeSpectrum(sr) {
+  const N = 2048, LOG = 11;
+  const re = new Float64Array(N), im = new Float64Array(N), win = new Float64Array(N);
+  const cs = new Float64Array(N / 2), sn = new Float64Array(N / 2), rev = new Uint16Array(N);
+  for (let i = 0; i < N; i++) {
+    win[i] = .5 - .5 * Math.cos(2 * Math.PI * i / (N - 1));
+    let r = 0;
+    for (let b = 0, x = i; b < LOG; b++) { r = (r << 1) | (x & 1); x >>= 1; }
+    rev[i] = r;
+  }
+  for (let k = 0; k < N / 2; k++) { cs[k] = Math.cos(2 * Math.PI * k / N); sn[k] = Math.sin(2 * Math.PI * k / N); }
+  const bin = sr / N;
+  const k0 = Math.max(1, Math.ceil(80 / bin)), k1 = Math.round(800 / bin), k2 = Math.min(N / 2, Math.round(4000 / bin));
+  // buf を start から時間順に読む（リングバッファにも使える）
+  return function bands(buf, start) {
+    for (let i = 0; i < N; i++) { const j = rev[i]; re[j] = buf[(start + i) % N] * win[i]; im[j] = 0; }
+    for (let size = 2; size <= N; size <<= 1) {
+      const half = size >> 1, step = N / size;
+      for (let i = 0; i < N; i += size) {
+        for (let j = 0; j < half; j++) {
+          const a = i + j, b = a + half, c = cs[j * step], s = sn[j * step];
+          const tr = c * re[b] + s * im[b], ti = c * im[b] - s * re[b];
+          re[b] = re[a] - tr; im[b] = im[a] - ti;
+          re[a] += tr; im[a] += ti;
+        }
+      }
+    }
+    let lo = 0, hi = 0;
+    for (let k = k0; k < k1; k++) lo += re[k] * re[k] + im[k] * im[k];
+    for (let k = k1; k < k2; k++) hi += re[k] * re[k] + im[k] * im[k];
+    return [lo, hi];
+  };
+}
+// 800Hzより上の音が、下の音に比べてどれくらい強いか（dB）。エアコンなど静かなときの音は差し引く
+function hfOf(lo, hi, nlo, nhi) {
+  const l = Math.max(lo - nlo, lo * .1), u = Math.max(hi - nhi, hi * .1);
+  return Math.max(-40, Math.min(40, Math.round(10 * Math.log10((u + 1e-20) / (l + 1e-20)))));
+}
+// 計測の本体。画面が消えたりページが止められたりしても、音声を処理するスレッドで動き続ける（AudioWorklet）
+const METER_SRC = `${makeSpectrum.toString()}
+${hfOf.toString()}
+class SnoreMeter extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    this.N = 2048;
+    this.buf = new Float32Array(this.N);
+    this.w = 0;
+    this.bands = makeSpectrum(sampleRate);
+    this.hop = Math.round(sampleRate / 8);
+    this.floor = null; this.nlo = 0; this.nhi = 0;
+    this.reset();
+    this.port.onmessage = e => { if (e.data === 'reset') this.reset(); };
+  }
+  reset() { this.cnt = 0; this.hops = 0; this.sec = 0; this.max = -Infinity; this.hf = null; }
+  process(inputs) {
+    const ch = inputs[0] && inputs[0][0];
+    if (!ch) return true;
+    const N = this.N, buf = this.buf;
+    for (let i = 0; i < ch.length; i++) {
+      buf[this.w] = ch[i];
+      this.w = (this.w + 1) % N;
+      if (++this.cnt < this.hop) continue;
+      this.cnt = 0;
+      // 1秒に8回、直前の2048点の音の大きさを測る
+      let s = 0;
+      for (let j = 0; j < N; j++) s += buf[j] * buf[j];
+      const db = 20 * Math.log10(Math.sqrt(s / N) + 1e-9);
+      const [lo, hi] = this.bands(buf, this.w);
+      // 静かなときの音を追いかける（下がるときはすぐ、上がるときはゆっくり）
+      if (this.floor === null) { this.floor = db; this.nlo = lo; this.nhi = hi; }
+      else if (db < this.floor) this.floor = db;
+      else this.floor += .02;
+      if (db < this.floor + 3) { this.nlo += (lo - this.nlo) * .1; this.nhi += (hi - this.nhi) * .1; }
+      if (db > this.max) { this.max = db; this.hf = hfOf(lo, hi, this.nlo, this.nhi); }
+      // 1秒ごとに、その1秒間でいちばん大きかった音を送る
+      if (++this.hops >= 8) {
+        this.sec++;
+        this.port.postMessage({ sec: this.sec, db: this.max, hf: this.max >= -62 ? this.hf : null });
+        this.hops = 0; this.max = -Infinity; this.hf = null;
+      }
+    }
+    return true;
+  }
+}
+registerProcessor('snore-meter', SnoreMeter);`;
+
+async function makeMeter(a, onMsg) {
+  try {
+    if (!a.audioWorklet || !window.AudioWorkletNode) throw new Error('no worklet');
+    const url = URL.createObjectURL(new Blob([METER_SRC], { type: 'text/javascript' }));
+    // 古いSafariなどで読み込みが終わらないときは、従来の方法に切り替える
+    await Promise.race([a.audioWorklet.addModule(url), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))]);
+    URL.revokeObjectURL(url);
+    const node = new AudioWorkletNode(a, 'snore-meter', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+    node.port.onmessage = e => onMsg(e.data);
+    const sink = a.createGain();
+    sink.gain.value = 0;
+    node.connect(sink);
+    sink.connect(a.destination);
+    return { input: node, wall: false, reset: () => node.port.postMessage('reset'), close() { node.port.onmessage = null; try { node.disconnect(); sink.disconnect(); } catch (e) {} } };
+  } catch (e) {
+    // 古いブラウザ向け：これまでと同じく、ページの中で測る（画面が消えると止まる）
+    const an = a.createAnalyser();
+    an.fftSize = 2048;
+    const buf = new Float32Array(2048), bands = makeSpectrum(a.sampleRate);
+    let hops = 0, sec = 0, max = -Infinity, hf = null, floor = null, nlo = 0, nhi = 0;
+    const iv = setInterval(() => {
+      an.getFloatTimeDomainData(buf);
+      const db = rmsDb(buf), [lo, hi] = bands(buf, 0);
+      if (floor === null) { floor = db; nlo = lo; nhi = hi; } else if (db < floor) floor = db; else floor += .02;
+      if (db < floor + 3) { nlo += (lo - nlo) * .1; nhi += (hi - nhi) * .1; }
+      if (db > max) { max = db; hf = hfOf(lo, hi, nlo, nhi); }
+      if (++hops >= 8) { sec++; onMsg({ sec, db: max, hf: max >= -62 ? hf : null }); hops = 0; max = -Infinity; hf = null; }
+    }, 125);
+    return { input: an, wall: true, reset() { hops = 0; sec = 0; max = -Infinity; hf = null; }, close() { clearInterval(iv); } };
+  }
+}
+
 /* ---------- 録音 ---------- */
-function setRecordingUI(on) {
+const moonSubText = state => state === 'idle' ? '枕元に置いてタップ' : state === 'paused' ? '一時停止中' : 'タップで停止';
+function setRecordingUI(state) {
   const m = $('moon');
-  m.classList.toggle('on', on);
+  m.classList.toggle('on', state !== 'idle');
+  m.classList.toggle('paused', state === 'paused');
   m.disabled = false;
-  m.setAttribute('aria-label', on ? '録音を止める' : '録音を始める');
-  $('moonMain').textContent = on ? '00:00:00' : '録音開始';
-  $('moonSub').textContent = on ? 'タップで停止' : '枕元に置いてタップ';
+  m.setAttribute('aria-label', state === 'idle' ? '録音を始める' : '録音を止める');
+  $('moonMain').textContent = state === 'idle' ? '録音開始' : clock(Math.max(0, nowT()));
+  $('moonSub').textContent = moonSubText(state);
+  $('recCtrl').hidden = state === 'idle';
+  const b = $('pauseBtn');
+  b.textContent = state === 'paused' ? '再開する' : '一時停止';
+  b.classList.toggle('resume', state === 'paused');
+  b.disabled = false;
+  $('dimLabel').textContent = state === 'paused' ? '一時停止中' : '録音中';
+  $('dim').classList.toggle('paused', state === 'paused');
+}
+
+// 録音中の案内。画面を消しても録れるかは端末によるので、確かめた結果があればそれを使う
+function recordingNote() {
+  const so = ls.get('snore-screenoff', null);
+  if (so === 'ok') return '録音中です。この端末は、画面を消しても録音できることを確認済みです';
+  if (so === 'ng' || isIOS) return `録音中です。${isIOS ? 'iPhoneのブラウザは' : 'この端末は'}画面を消すと録音が止まるので、画面はつけたままにしてください。20秒ほどで真っ黒な画面になります`;
+  return '録音中です。20秒ほどで真っ黒な画面になります。電源ボタンで画面を消しても録音が続くかは機種によるので、画面を戻したときに結果をお知らせします';
 }
 
 async function requestWakeLock() {
@@ -969,30 +1538,133 @@ async function requestWakeLock() {
   } catch (e) { /* 対応していないブラウザでは何もしない */ }
 }
 
+let dimMove = null;
 function scheduleDim() {
   clearTimeout(dimTimer);
   if (recording()) dimTimer = setTimeout(showDim, 20000);
 }
-function showDim() { $('dim').hidden = false; stopTwinkle(); }
-$('dim').addEventListener('click', () => { $('dim').hidden = true; startTwinkle(); scheduleDim(); });
-document.addEventListener('pointerdown', () => { if (recording() && $('dim').hidden) scheduleDim(); }, true);
+function placeDim() {
+  // 焼き付きを防ぐため、文字の場所を少しずつ変える
+  const dx = (Math.random() - .5) * Math.max(0, innerWidth - 260);
+  const dy = (Math.random() - .5) * Math.max(0, innerHeight - 220);
+  $('dimInner').style.transform = `translate(${Math.round(dx)}px, ${Math.round(dy)}px)`;
+}
+function showDim() {
+  $('dim').hidden = false;
+  stopTwinkle();
+  placeDim();
+  clearInterval(dimMove);
+  dimMove = setInterval(() => { if ($('dim').hidden) clearInterval(dimMove); else placeDim(); }, 60000);
+}
+function hideDim() {
+  $('dim').hidden = true;
+  clearInterval(dimMove);
+  startTwinkle();
+}
+$('dim').addEventListener('click', () => { hideDim(); scheduleDim(); });
+document.addEventListener('pointerdown', () => {
+  if (!recording()) return;
+  if ($('dim').hidden) scheduleDim();
+  // 電話などで音の処理が止まっていたら、タップで再開する
+  if (!rec.paused && rec.actx && rec.actx.state !== 'running' && rec.actx.state !== 'closed') rec.actx.resume().catch(() => {});
+}, true);
+
+const openMic = () => navigator.mediaDevices.getUserMedia({
+  // 音量を正確に測るため、自動音量調整とノイズ除去は切っておく
+  audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+});
+function micFail(e) {
+  const key = micErrorKey(e);
+  setStatus(key ? MSG[key] : `マイクを使えませんでした（${e.name || 'エラー'}）。ページを開き直して、もう一度タップしてください。`, true);
+}
+
+// 1秒ごとの音の大きさを受け取る
+function onMeter(m) {
+  if (!rec.on || rec.paused || !rec.mp) return;
+  if (!(m.db > -89)) return; // 音がまったく来ていない（マイクが止められている）秒は記録しない
+  const mp = rec.mp;
+  let t;
+  if (rec.meter.wall) t = nowT();
+  else {
+    // 時刻は「この区間の始まり＋処理した音の秒数」。音の処理自体が止まっていた（画面ロックなど）ぶんだけ進める
+    const lag = (Date.now() - startTime) / 1000 - (rec.actx.currentTime - mp.ctx0);
+    if (mp.base == null) mp.base = lag;
+    if (lag - mp.base > 3) { mp.off += Math.round(lag - mp.base); mp.base = lag; }
+    t = mp.t0 + m.sec + mp.off;
+  }
+  if (samples.length && t <= last(samples).t) t = last(samples).t + 1;
+  const smp = { t, db: Math.round(m.db * 10) / 10 };
+  if (m.hf != null) smp.hf = m.hf;
+  samples.push(smp);
+  // 途中でページが止まっても数値が残るよう、1分ごとに保存しておく
+  if (Date.now() - rec.lastSave > 60000) saveCheckpoint();
+}
+
+function liveSession(partial) {
+  return {
+    id: rec.id, start: startTime, partial, updatedAt: Date.now(),
+    duration: samples.length ? last(samples).t : 0,
+    threshold: +$('threshold').value,
+    samples, pauses: rec.pauses.filter(p => p.end != null),
+    events: [], notes: tonight.notes.trim(), factors: { ...tonight.factors },
+    keepAudio: false, parts: []
+  };
+}
+function saveCheckpoint() {
+  rec.lastSave = Date.now();
+  if (db && samples.length) putSession(liveSession(true)).catch(() => {});
+}
+
+function startRecorder(stream) {
+  let r;
+  // 寝息やいびきを聞き返すには十分な音質で、一晩の録音が大きくなりすぎないようにする
+  try { r = new MediaRecorder(stream, { audioBitsPerSecond: 32000 }); } catch (e) { r = new MediaRecorder(stream); }
+  const chunks = [], t0 = nowT();
+  r.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  rec.recStopped = new Promise(res => {
+    r.onstop = () => {
+      if (chunks.length) rec.parts.push({ blob: new Blob(chunks, { type: r.mimeType || chunks[0].type || 'audio/webm' }), t0, t1: Math.max(t0, nowT()) });
+      res();
+      // 思いがけず止まったときは、同じマイクのまま録音を続ける
+      if (rec.on && !rec.paused && !rec.stopping && rec.recorder === r && stream.active) startRecorder(stream);
+    };
+  });
+  r.onerror = () => { try { r.stop(); } catch (e) {} };
+  rec.recorder = r;
+  r.start(1000);
+}
+async function stopRecorder() {
+  const r = rec.recorder;
+  if (!r) return;
+  rec.recorder = null;
+  if (r.state !== 'inactive') { try { r.stop(); } catch (e) {} }
+  await Promise.race([rec.recStopped, new Promise(res => setTimeout(res, 5000))]);
+}
+
+function attachMic(stream) {
+  rec.stream = stream;
+  rec.src = rec.actx.createMediaStreamSource(stream);
+  rec.src.connect(rec.meter.input);
+  rec.meter.reset();
+  rec.mp = { t0: nowT(), ctx0: rec.actx.currentTime, base: null, off: 0 };
+  const tr = stream.getAudioTracks()[0];
+  if (tr) tr.addEventListener('ended', () => { if (rec.on && !rec.paused && rec.stream === stream) micLost(); });
+  startRecorder(stream);
+}
+function releaseMic() {
+  if (rec.src) { try { rec.src.disconnect(); } catch (e) {} rec.src = null; }
+  if (rec.stream) { rec.stream.getTracks().forEach(t => t.stop()); rec.stream = null; }
+}
 
 async function start() {
   const btn = $('moon');
   const problem = micProblem();
   if (problem) { setStatus(MSG[problem], true); return; }
   btn.disabled = true;
-  try {
-    // 音量を正確に測るため、自動音量調整とノイズ除去は切っておく
-    stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
-    });
-  } catch (e) {
-    const key = micErrorKey(e);
-    setStatus(key ? MSG[key] : `マイクを使えませんでした（${e.name || 'エラー'}）。ページを開き直して、もう一度タップしてください。`, true);
-    btn.disabled = false;
-    return;
-  }
+  scan.cancel = true;
+  let stream;
+  try { stream = await openMic(); }
+  catch (e) { micFail(e); btn.disabled = false; return; }
   // 記録をブラウザに消されにくくする（対応しているブラウザのみ）
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().then(updateUsage, () => {}); } catch (e) {}
 
@@ -1002,78 +1674,120 @@ async function start() {
   renderNightFactors();
   document.querySelectorAll('.pick').forEach(p => p.removeAttribute('aria-current'));
 
-  actx = new (window.AudioContext || window.webkitAudioContext)();
-  if (actx.state === 'suspended') await actx.resume();
-  analyser = actx.createAnalyser();
-  analyser.fftSize = 2048;
-  actx.createMediaStreamSource(stream).connect(analyser);
+  rec.actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (rec.actx.state === 'suspended') await rec.actx.resume().catch(() => {});
+  rec.meter = await makeMeter(rec.actx, onMeter);
 
-  chunks = [];
-  // 寝息やいびきを聞き返すには十分な音質で、一晩の録音が大きくなりすぎないようにする
-  try { recorder = new MediaRecorder(stream, { audioBitsPerSecond: 32000 }); }
-  catch (e) { recorder = new MediaRecorder(stream); }
-  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
-  recorder.start(1000);
-
-  samples = [];
   startTime = Date.now();
-  const buf = new Float32Array(analyser.fftSize);
-  let peak = -Infinity;
-
-  // 1秒に8回測り、その1秒間でいちばん大きかった音を記録する
-  sampleTimer = setInterval(() => {
-    analyser.getFloatTimeDomainData(buf);
-    peak = Math.max(peak, rmsDb(buf));
-  }, 125);
-
-  timer = setInterval(() => {
-    const t = Math.round((Date.now() - startTime) / 1000);
-    samples.push({ t, db: peak === -Infinity ? -90 : peak });
-    peak = -Infinity;
-    const c = clock(t);
-    $('moonMain').textContent = c;
-    $('dimTime').textContent = c;
-    if ($('dim').hidden && !$('panelRec').hidden) refreshView();
-  }, 1000);
+  Object.assign(rec, { on: true, paused: false, stopping: false, id: startTime, parts: [], pauses: [], lastSave: Date.now(), hiddenAt: null });
+  samples = [];
+  attachMic(stream);
+  rec.uiTimer = setInterval(tickUI, 1000);
 
   await requestWakeLock();
-  setRecordingUI(true);
-  setStatus('録音中です。20秒ほど操作しないと画面が暗くなります');
+  setRecordingUI('rec');
+  setStatus(recordingNote());
   refreshView();
   scheduleDim();
 }
 
-async function stop() {
-  clearInterval(timer);
-  clearInterval(sampleTimer);
-  clearTimeout(dimTimer);
-  $('dim').hidden = true;
-  startTwinkle();
+function tickUI() {
+  if (!rec.on) return;
+  const c = clock(Math.max(0, nowT()));
+  $('moonMain').textContent = c;
+  $('dimTime').textContent = c;
+  if ($('dim').hidden && !$('panelRec').hidden && !document.hidden) refreshView();
+}
 
-  const stopped = new Promise(r => { recorder.onstop = r; });
-  recorder.stop();
-  await stopped;
-  stream.getTracks().forEach(t => t.stop());
-  actx.close();
+// 一時停止：マイクも止める。再開すると、同じ夜の続きとして記録する
+async function pauseRec(kind = 'user') {
+  if (!rec.on || rec.paused) return;
+  rec.paused = true;
+  rec.mp = null;
+  const at = kind === 'lost' && samples.length ? Math.min(nowT(), last(samples).t + 1) : nowT();
+  rec.pauses.push({ start: at, end: null, kind });
+  setRecordingUI('paused');
+  await stopRecorder();
+  releaseMic();
+  try { await rec.actx.suspend(); } catch (e) {}
+  saveCheckpoint();
+  refreshView();
+}
+async function resumeRec() {
+  if (!rec.on || !rec.paused) return;
+  const resumed = rec.actx.resume().catch(() => {}); // タップの処理の中で呼ぶ
+  let stream;
+  try { stream = await openMic(); }
+  catch (e) { micFail(e); return false; }
+  await resumed;
+  const p = last(rec.pauses);
+  if (p && p.end == null) p.end = Math.max(p.start, nowT());
+  rec.paused = false;
+  attachMic(stream);
+  setRecordingUI('rec');
+  setStatus(`再開しました。${recordingNote()}`);
+  saveCheckpoint();
+  refreshView();
+  scheduleDim();
+  return true;
+}
+async function micLost() {
+  // マイクが止められた（画面のロック、電話、ほかのアプリなど）。この夜の続きとして録り直せるよう、一時停止にしておく
+  if (!rec.on || rec.paused) return;
+  await pauseRec('lost');
+  hideDim();
+  setStatus('マイクが止まっていました。「再開する」を押すと、この夜の続きとして録音します。', true);
+}
+
+$('pauseBtn').addEventListener('click', async () => {
+  if (!rec.on) return;
+  const b = $('pauseBtn');
+  b.disabled = true;
+  if (rec.paused) {
+    if (!(await resumeRec())) b.disabled = false;
+  } else {
+    await pauseRec('user');
+    setStatus('一時停止しました。マイクも止めています。眠るときに「再開する」を押すと、この夜の続きとして録音します。');
+  }
+});
+
+async function stop() {
+  rec.stopping = true;
+  clearInterval(rec.uiTimer);
+  clearTimeout(dimTimer);
+  hideDim();
+
+  if (!rec.paused) await stopRecorder();
+  releaseMic();
+  if (rec.meter) rec.meter.close();
+  try { await rec.actx.close(); } catch (e) {}
   if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+  rec.on = false;
+  rec.paused = false;
+  rec.stopping = false;
+  rec.mp = null;
 
   const thr = +$('threshold').value;
-  const now = Date.now();
+  // 一時停止したまま止めたときは、一時停止したところで終わりにする
+  const pauses = rec.pauses.filter(p => p.end != null);
   const session = {
-    id: now,
-    updatedAt: now,
+    id: rec.id,
+    updatedAt: Date.now(),
     start: startTime,
     duration: samples.length ? last(samples).t : 0,
     threshold: thr,
     samples,
+    pauses,
     events: findEvents(samples, thr),
     notes: tonight.notes.trim(),
     factors: { ...tonight.factors },
     keepAudio: false,
-    blob: new Blob(chunks, { type: recorder.mimeType || 'audio/webm' })
+    parts: rec.parts
   };
+  rec.parts = [];
+  rec.pauses = [];
 
-  setRecordingUI(false);
+  setRecordingUI('idle');
   try {
     await putSession(session);
     tonight = { factors: emptyFactors(), notes: '' };
@@ -1091,6 +1805,22 @@ async function stop() {
   scheduleSync(1000);
 }
 
+// 前回、録音の途中でページが止まった（電池切れ・ブラウザが閉じられたなど）ときは、1分ごとに保存していた数値を記録として残す
+async function recoverPartial() {
+  let n = 0;
+  for (const s of await getAllSessions(true)) {
+    if (!s.partial) continue;
+    if (Date.now() - (s.updatedAt || 0) < 3 * 60000) continue; // ほかのタブで録音中かもしれない
+    if (!s.samples || s.samples.length < 2) { await deleteSession(s.id); continue; }
+    Object.assign(s, {
+      partial: false, recovered: true, updatedAt: Date.now(),
+      duration: last(s.samples).t, events: findEvents(s.samples, s.threshold)
+    });
+    try { await putSession(s); n++; } catch (e) {}
+  }
+  return n;
+}
+
 // 寝ぼけて止めないよう、停止は4秒以内に2回タップしたときだけ
 let stopArm = null;
 $('moon').addEventListener('click', () => {
@@ -1105,10 +1835,34 @@ $('moon').addEventListener('click', () => {
   stopArm = setTimeout(() => {
     stopArm = null;
     if (!recording()) return;
-    $('moonSub').textContent = 'タップで停止';
-    setStatus('録音中です。20秒ほど操作しないと画面が暗くなります');
+    $('moonSub').textContent = moonSubText(rec.paused ? 'paused' : 'rec');
+    setStatus(rec.paused ? '一時停止中です。眠るときに「再開する」を押してください。' : recordingNote());
   }, 4000);
 });
+
+// 画面を消していたあいだも録れていたかを確かめて、知らせる
+function checkHidden(from, to) {
+  if (!rec.on) return;
+  const a = (from - startTime) / 1000 + 3, b = (to - startTime) / 1000 - 3;
+  let paused = 0;
+  for (const p of rec.pauses) {
+    const e = p.end ?? nowT();
+    paused += Math.max(0, Math.min(b, e) - Math.max(a, p.start));
+  }
+  const expect = b - a - paused;
+  if (expect < 30) return;
+  let n = 0;
+  for (const p of samples) if (p.t >= a && p.t <= b) n++;
+  const span = durJa((to - from) / 1000);
+  if (n / expect >= .9) {
+    ls.set('snore-screenoff', 'ok');
+    setStatus(`画面を消していた${span}のあいだも、録音できていました。この端末は、画面を消して録音できます。`);
+  } else {
+    ls.set('snore-screenoff', 'ng');
+    setStatus(`画面を消していた${span}のうち、${durJa(Math.max(0, expect - n))}ほど録音できていませんでした（グラフの斜線の部分）。この端末では、画面をつけたまま（真っ黒な画面のまま）にしてください。`, true);
+  }
+  refreshView();
+}
 
 $('threshold').addEventListener('input', e => {
   $('thVal').textContent = `${e.target.value} dB`;
@@ -1130,22 +1884,32 @@ function drawSpark(c, s) {
   const { g, W, H } = sizeCanvas(c, 34);
   const d = s.samples || [];
   if (d.length < 2 || !W) return;
-  const T = Math.max(last(d).t, 1);
+  const T = spanT(s, null);
   const y = db => H - 2 - ((Math.min(Math.max(db, -60), 0) + 60) / 60) * (H - 4);
   const bands = new Path2D();
   for (const e of (s.events || findEvents(d, s.threshold))) {
-    bands.rect(e.start / T * W, 0, Math.max((e.end - e.start + 1) / T * W, 1.5), H);
+    bands.rect((e.start - .5) / T * W, 0, Math.max((e.end - e.start + 1) / T * W, 1.5), H);
   }
   g.fillStyle = 'rgba(255,143,163,.35)';
   g.fill(bands);
-  g.beginPath();
-  bucket(d, W).forEach((p, i) => {
-    const px = i === 0 ? 0 : p.t / T * W;
-    i ? g.lineTo(px, y(p.db)) : g.moveTo(px, y(p.db));
+  drawWave(g, waveCols(d, T, W), W, y, H, seg => {
+    g.beginPath();
+    seg.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y));
+    g.strokeStyle = 'rgba(169,200,255,.8)';
+    g.lineWidth = 1;
+    g.stroke();
   });
-  g.strokeStyle = 'rgba(169,200,255,.8)';
-  g.lineWidth = 1;
-  g.stroke();
+}
+
+function listSub(s, st) {
+  const extra = [];
+  if (st.pauseN) extra.push(`中断${st.pauseN}回`);
+  if (st.types.known >= MIN_TYPED) {
+    const v = typeVerdict(typeShares(st.types));
+    extra.push(v === 'both' ? 'ガー・ズー両方' : `${TYPE_INFO[v].name}多め`);
+  }
+  if (!hasAudio(s)) extra.push('音声なし');
+  return `${hm(s.start)}〜${hm(s.start + s.duration * 1000)}（${durJa(st.measured)}）　いびき ${pct(st.ratio)}${extra.length ? '　' + extra.join('・') : ''}`;
 }
 
 async function loadList() {
@@ -1159,7 +1923,7 @@ async function loadList() {
     const st = nightStats(s);
     const pick = h('button', { type: 'button', class: 'pick' },
       h('span', { class: 'pick-title' }, nightLabel(s.start)),
-      h('span', { class: 'pick-sub' }, `${hm(s.start)}〜${hm(s.start + s.duration * 1000)}（${durJa(s.duration)}）　いびき ${pct(st.ratio)}${s.blob ? '' : '　音声なし'}`)
+      h('span', { class: 'pick-sub' }, listSub(s, st))
     );
     pick.dataset.id = s.id;
     if (viewing && viewing.id === s.id) pick.setAttribute('aria-current', 'true');
@@ -1205,11 +1969,11 @@ async function pruneAudio() {
   const limit = Date.now() - days * 86400000;
   let n = 0;
   for (const s of await getAllSessions()) {
-    if (s.blob && !s.keepAudio && s.start < limit) {
-      s.blob = null;
+    if (hasAudio(s) && !s.keepAudio && s.start < limit) {
+      s.parts = [];
       s.audioDeleted = true;
       try { await putSession(s); n++; } catch (e) {}
-      if (viewing && viewing.id === s.id) { viewing.blob = null; viewing.audioDeleted = true; showPlayer(viewing); }
+      if (viewing && viewing.id === s.id) { viewing.parts = []; viewing.audioDeleted = true; showPlayer(viewing); refreshView(); }
     }
   }
   return n;
@@ -1217,7 +1981,7 @@ async function pruneAudio() {
 
 async function updateUsage() {
   const all = await getAllSessions();
-  const withAudio = all.filter(s => s.blob).length;
+  const withAudio = all.filter(hasAudio).length;
   let text = `記録 ${all.length}夜分（音声が残っている夜 ${withAudio}夜）`;
   try {
     if (navigator.storage && navigator.storage.estimate) {
@@ -1245,22 +2009,36 @@ $('audioDays').addEventListener('change', async e => {
 });
 
 // バックアップ：数値は1秒ごとの差分と、1dB単位に丸めた音量で小さくまとめる
+// いびきの種類の数値（hf）がある夜は、それも入れる
 function encodeSamples(d) {
-  const dt = [], dbs = [];
-  let prev = 0;
-  for (const p of d) { dt.push(p.t - prev); prev = p.t; dbs.push(Math.round(p.db)); }
-  return { dt, db: dbs };
+  const dt = [], dbs = [], hf = [];
+  let prev = 0, anyHf = false;
+  for (const p of d) {
+    dt.push(p.t - prev); prev = p.t; dbs.push(Math.round(p.db));
+    hf.push(p.hf == null ? null : p.hf);
+    if (p.hf != null) anyHf = true;
+  }
+  return anyHf ? { dt, db: dbs, hf } : { dt, db: dbs };
 }
 function decodeSamples(o) {
   const out = [];
+  const hf = Array.isArray(o.hf) && o.hf.length === o.dt.length ? o.hf : null;
   let t = 0;
   for (let i = 0; i < o.dt.length; i++) {
     const dt = Number(o.dt[i]), v = Number(o.db[i]);
     if (!Number.isFinite(dt) || !Number.isFinite(v)) continue;
     t += dt;
-    out.push({ t, db: v });
+    const p = { t, db: v };
+    if (hf && Number.isFinite(hf[i])) p.hf = Math.max(-40, Math.min(40, Math.round(hf[i])));
+    out.push(p);
   }
   return out;
+}
+// 中断の記録（バックアップやクラウドから読むとき、形を確かめる）
+function sanitizePauses(a) {
+  if (!Array.isArray(a)) return [];
+  return a.filter(p => p && Number.isFinite(p.start) && Number.isFinite(p.end) && p.end >= p.start)
+    .map(p => ({ start: p.start, end: p.end, kind: p.kind === 'lost' ? 'lost' : 'user' }));
 }
 
 $('exportBtn').addEventListener('click', async () => {
@@ -1271,6 +2049,7 @@ $('exportBtn').addEventListener('click', async () => {
     nights: all.map(s => ({
       id: s.id, start: s.start, threshold: s.threshold, updatedAt: s.updatedAt || s.id,
       notes: s.notes || '', factors: s.factors || null, keepAudio: !!s.keepAudio,
+      pauses: s.pauses || [], typeScanned: s.typeScanned || null,
       samples: encodeSamples(s.samples || [])
     }))
   };
@@ -1310,11 +2089,12 @@ $('importFile').addEventListener('change', async e => {
     try {
       await putSession({
         id: n.id, start: n.start, duration: smp.length ? last(smp).t : 0, threshold: thr,
-        samples: smp, events: findEvents(smp, thr),
+        samples: smp, events: findEvents(smp, thr), pauses: sanitizePauses(n.pauses),
+        typeScanned: typeof n.typeScanned === 'number' ? n.typeScanned : null,
         notes: typeof n.notes === 'string' ? n.notes : '',
         factors: n.factors ? sanitizeFactors(n.factors) : null,
         updatedAt: typeof n.updatedAt === 'number' ? n.updatedAt : Date.now(),
-        keepAudio: !!n.keepAudio, blob: null, audioDeleted: true
+        keepAudio: !!n.keepAudio, parts: []
       });
       added++;
     } catch (err) { bad++; }
@@ -1348,10 +2128,25 @@ const GENERAL = [
   { key: 'smoke', title: 'たばこを控える', body: 'のどや鼻の粘膜の炎症につながります。' }
 ];
 
+// チェック項目ごとの「あり」「なし」の分け方
+function factorDefs(tagged) {
+  const defs = [
+    { key: 'alcohol', kind: 'risk', name: 'お酒を飲んだ夜', short: 'お酒', yes: '飲んだ', no: '飲まない', test: f => f.alcohol > 0 },
+    ...BOOL_FACTORS.map(k => ({ key: k.key, kind: k.kind, name: k.night, short: k.short, yes: 'あり', no: 'なし', test: f => !!f[k.key] })),
+    { key: 'humidity', kind: 'risk', name: '乾燥していた夜（湿度40%未満）', short: '湿度', yes: '40%未満', no: '40%以上', test: f => f.humidity == null ? null : f.humidity < 40 }
+  ];
+  const temps = tagged.map(n => n.s.factors.temp).filter(v => v != null).sort((a, b) => a - b);
+  if (temps.length >= 4 && temps[0] !== last(temps)) {
+    const m = temps[Math.floor(temps.length / 2)];
+    defs.push({ key: 'temp', kind: 'risk', name: `室温が${m}℃以上の夜`, short: '室温', yes: `${m}℃以上`, no: `${m}℃未満`, test: f => f.temp == null ? null : f.temp >= m });
+  }
+  return defs;
+}
+
 const niceMax = v => Math.max(.05, Math.ceil(v * 100 / 5) * 5 / 100);
 
 function barChart(items, opts = {}) {
-  const max = niceMax(Math.max(0, ...items.map(i => i.value), opts.avg || 0));
+  const max = opts.max || niceMax(Math.max(0, ...items.map(i => i.value), opts.avg || 0));
   const bars = h('div', { class: 'bars' });
   const ro = h('p', { class: 'readout', 'aria-live': 'polite' }, opts.hint || '');
   const xl = h('div', { class: 'xlabels', 'aria-hidden': 'true' });
@@ -1360,7 +2155,11 @@ function barChart(items, opts = {}) {
   const every = items.length <= 8 ? 1 : Math.ceil(items.length / 5);
   items.forEach((it, i) => {
     const hgt = it.value > 0 ? Math.max(it.value / max * 100, 2) : .8;
-    const b = h('button', { type: 'button', class: 'bar', 'aria-label': it.aria, 'aria-pressed': 'false' }, h('i', { style: `height:${hgt}%` }));
+    // segs があれば積み上げ（いびきの種類の割合）
+    const inner = it.segs
+      ? h('span', { class: 'sbar' }, it.segs.map(([cls, v]) => h('i', { class: cls, style: `height:${v * 100}%` })))
+      : h('i', { style: `height:${hgt}%` });
+    const b = h('button', { type: 'button', class: 'bar', 'aria-label': it.aria, 'aria-pressed': 'false' }, inner);
     const pick = () => {
       if (active) active.setAttribute('aria-pressed', 'false');
       active = b;
@@ -1377,6 +2176,95 @@ function barChart(items, opts = {}) {
   });
   if (opts.avg != null) bars.append(h('div', { class: 'avg', style: `bottom:${opts.avg / max * 100}%` }, h('span', null, opts.avgLabel)));
   return h('div', { class: 'chart' }, bars, xl, ro);
+}
+
+/* いびきの種類（分析タブ） */
+const TYPE_TEXT = {
+  ga: {
+    title: 'ガー型：高めの音を含む、ひらいた音',
+    what: '口で息をしているときのいびきに多い音です。のどちんこのまわり（軟口蓋）に加えて、舌のつけ根や扁桃が震えていることがあります。',
+    tip: '鼻がつまると口で息をしやすくなり、あお向けだと舌のつけ根がのどに落ち込みやすくなります。鼻の通りをよくする、横向きで寝る、寝る前のお酒を控える、を試してみましょう。鼻づまりが続くなら耳鼻咽喉科で相談してください。'
+  },
+  zu: {
+    title: 'ズー型：低くこもった音',
+    what: '口を閉じて鼻で息をしているときのいびきに多い音です。主に、のどちんこのまわり（軟口蓋）が震えています。',
+    tip: 'お酒や疲れでのどの筋肉がゆるむと出やすく、あお向けでも出やすくなります。横向きで寝る、寝る前のお酒を控える、体重を見直す、を試してみましょう。'
+  }
+};
+const GA_HINT = {
+  nasal: '鼻がつまって、口で息をしていたのかもしれません。鼻の通りをよくすると変わるか、試してみましょう。',
+  nasalAid: '鼻の通りがよくなって、口で息をすることが減ったのかもしれません。',
+  side: '横向きだと、舌のつけ根がのどに落ち込みにくくなります。',
+  alcohol: 'お酒でのどや舌の筋肉がゆるむと、口が開きやすくなります。'
+};
+
+function typeSection(valid) {
+  const sec = h('section', null, h('h2', null, 'いびきの種類'));
+  const typed = valid.filter(n => n.st.types.known >= MIN_TYPED);
+  const explain = (order, mark) => h('ul', { class: 'tips' }, order.map((k, i) =>
+    h('li', { class: mark && i === 0 ? (k === 'ga' ? 'mine' : 'good') : '' }, h('b', null, TYPE_TEXT[k].title), h('p', null, TYPE_TEXT[k].what + TYPE_TEXT[k].tip))));
+  const unscanned = valid.filter(n => n.st.types.known < MIN_TYPED && hasAudio(n.s) && !n.s.typeScanned).length;
+
+  if (!typed.length) {
+    sec.append(h('p', { class: 'hint' }, unscanned
+      ? `いびきの音が「ガー型」か「ズー型」かを調べられます。これから録音する夜は自動で調べます。音声が残っている夜（${unscanned}夜）は、「録音」タブでその夜を開き、「録音から調べる」を押すと調べられます。`
+      : 'いびきの音が「ガー型」か「ズー型」かを、これから録音する夜から自動で調べます。'));
+    sec.append(explain(['ga', 'zu'], false));
+    return sec;
+  }
+
+  const sum = k => typed.reduce((a, n) => a + n.st.types[k], 0);
+  const known = sum('known');
+  const sh = { ga: sum('ga') / known, zu: sum('zu') / known, mid: sum('mid') / known };
+  const v = typeVerdict(sh);
+  sec.append(h('p', { class: 'lead' }, `${typed.length}夜分のいびきでは、`,
+    v === 'both' ? 'ガー型とズー型の両方が出ています。'
+      : [h('b', { style: v === 'zu' ? 'color:var(--star)' : null }, TYPE_INFO[v].name), `（${TYPE_INFO[v].desc}）が多めです。`]),
+    typeBar(sh), typeLegend(sh));
+  if (unscanned) sec.append(h('p', { class: 'hint' }, `種類をまだ調べていない夜が${unscanned}夜あります。「録音」タブでその夜を開き、「録音から調べる」を押すと調べられます。`));
+
+  const shown = typed.slice(-14);
+  sec.append(barChart(shown.map(n => {
+    const t = typeShares(n.st.types);
+    return {
+      value: 1,
+      segs: [['t-ga', t.ga], ['t-mid', t.mid], ['t-zu', t.zu]],
+      label: shortDate(n.s.start),
+      aria: `${nightLabel(n.s.start)}、ガー型 ${pct(t.ga)}、ズー型 ${pct(t.zu)}`,
+      readout: [`${nightLabel(n.s.start)}：ガー型 ${pct(t.ga)}・ズー型 ${pct(t.zu)}${t.mid ? `・どちらとも ${pct(t.mid)}` : ''}`,
+        h('button', { type: 'button', class: 'textbtn', onclick: () => openNight(n.s) }, 'この夜を見る')]
+    };
+  }), { max: 1, hint: '棒をタップすると、その夜の割合が出ます。下から、ガー型（赤）、どちらとも言えない（灰色）、ズー型（青）です。' }));
+
+  // チェック項目との関係（ガー型の割合で比べる）
+  const tagged = typed.filter(n => n.s.factors);
+  const lines = [];
+  for (const d of factorDefs(tagged)) {
+    const w = [], wo = [];
+    for (const n of tagged) {
+      const r = d.test(n.s.factors), g = typeShares(n.st.types).ga;
+      if (r === true) w.push(g); else if (r === false) wo.push(g);
+    }
+    if (w.length < 2 || wo.length < 2) continue;
+    const mw = mean(w), mwo = mean(wo);
+    if (Math.abs(mw - mwo) >= .15) lines.push({ d, mw, mwo, diff: mw - mwo });
+  }
+  lines.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+  sec.append(h('h3', { class: 'subhead' }, 'チェック項目との関係'));
+  if (lines.length) {
+    sec.append(h('ul', { class: 'tips' }, lines.map(l => h('li', { class: l.diff > 0 ? 'mine' : 'good' },
+      h('b', null, `${l.d.name}は、ガー型の割合が${l.diff > 0 ? '高め' : '低め'}です（${pct(l.mw)}。そうでない夜は${pct(l.mwo)}）`),
+      h('p', null, GA_HINT[l.d.key] || (l.diff > 0 ? '口で息をしやすくなっているのかもしれません。' : '口で息をすることが減っているのかもしれません。'))))));
+  } else {
+    sec.append(h('p', { class: 'hint' }, tagged.length >= 4
+      ? 'チェック項目といびきの種類のあいだに、はっきりした関係はまだ見つかっていません。'
+      : '「寝る前のこと」をチェックした夜が増えると、鼻づまりの夜にガー型が増えるか、などを比べられます。'));
+  }
+
+  sec.append(h('h3', { class: 'subhead' }, 'それぞれの種類の原因と対策'),
+    explain(v === 'zu' ? ['zu', 'ga'] : ['ga', 'zu'], v !== 'both'),
+    h('p', { class: 'hint' }, '音の高さ（800Hzより上の音がどれくらい含まれるか）から見た目安です。研究では、口で息をするいびきや、舌のつけ根が震えるいびきは1000Hzあたりの音を多く含み、鼻で息をするいびきは500Hzより低い音が中心だと報告されています。スマホの置き場所や部屋の音でも変わるので、「録音」タブの「例を聞く」で確かめてください。実際にどこが震えているかは、耳鼻咽喉科で内視鏡などを使って調べます。'));
+  return sec;
 }
 
 function openNight(s) {
@@ -1429,6 +2317,7 @@ async function renderAnalysis() {
       readout: [`${nightLabel(n.s.start)}：いびき ${pct(n.st.ratio)}（${durJa(n.st.snoreSec)}）`, h('button', { type: 'button', class: 'textbtn', onclick: () => openNight(n.s) }, 'この夜を見る')]
     })), { avg: mean(shown.map(n => n.st.ratio)), avgLabel: `平均 ${pct(mean(shown.map(n => n.st.ratio)))}`, hint: '棒をタップすると、その夜の数値が出ます。' }));
     out.push(trend);
+    out.push(typeSection(valid));
   }
 
   // 関係がありそうなこと
@@ -1441,16 +2330,7 @@ async function renderAnalysis() {
     rel.append(h('p', { class: 'hint' }, '「寝る前のこと」をチェックした夜がまだありません。毎晩チェックしてから録音すると、お酒や鼻づまりなどがある夜とない夜で、いびきの割合を比べられます。'));
     out.push(rel);
   } else {
-    const defs = [
-      { key: 'alcohol', kind: 'risk', name: 'お酒を飲んだ夜', short: 'お酒', yes: '飲んだ', no: '飲まない', test: f => f.alcohol > 0 },
-      ...BOOL_FACTORS.map(k => ({ key: k.key, kind: k.kind, name: k.night, short: k.short, yes: 'あり', no: 'なし', test: f => !!f[k.key] })),
-      { key: 'humidity', kind: 'risk', name: '乾燥していた夜（湿度40%未満）', short: '湿度', yes: '40%未満', no: '40%以上', test: f => f.humidity == null ? null : f.humidity < 40 }
-    ];
-    const temps = tagged.map(n => n.s.factors.temp).filter(v => v != null).sort((a, b) => a - b);
-    if (temps.length >= 4 && temps[0] !== last(temps)) {
-      const m = temps[Math.floor(temps.length / 2)];
-      defs.push({ key: 'temp', kind: 'risk', name: `室温が${m}℃以上の夜`, short: '室温', yes: `${m}℃以上`, no: `${m}℃未満`, test: f => f.temp == null ? null : f.temp >= m });
-    }
+    const defs = factorDefs(tagged);
     const results = defs.map(d => {
       const w = [], wo = [];
       for (const n of tagged) {
@@ -1642,24 +2522,33 @@ $('cloudIn').addEventListener('click', () => {
 $('cloudOut').addEventListener('click', () => { if (cloud.ready) cloud.au.signOut(cloud.auth).catch(() => {}); });
 $('cloudSync').addEventListener('click', () => syncNow());
 
-// 1秒ごとの音量を小さなバイナリにまとめる（前の値との秒の差はUint16、音量は1dB単位のInt8）
+// 1秒ごとの音量を小さなバイナリにまとめる（前の値との秒の差はUint16、音量は1dB単位のInt8）。
+// いびきの種類の数値（hf）もInt8で、ない秒は -128
 function packSamples(d) {
-  const dt = new DataView(new ArrayBuffer(d.length * 2)), v = new Int8Array(d.length);
-  let prev = 0;
+  const dt = new DataView(new ArrayBuffer(d.length * 2)), v = new Int8Array(d.length), hf = new Int8Array(d.length);
+  let prev = 0, anyHf = false;
   d.forEach((p, i) => {
     dt.setUint16(i * 2, Math.min(65535, Math.max(0, p.t - prev)), true);
     prev = p.t;
     v[i] = Math.max(-128, Math.min(127, Math.round(p.db)));
+    if (p.hf == null) hf[i] = -128;
+    else { hf[i] = Math.max(-127, Math.min(127, Math.round(p.hf))); anyHf = true; }
   });
-  return { dt: new Uint8Array(dt.buffer), db: new Uint8Array(v.buffer) };
+  return { dt: new Uint8Array(dt.buffer), db: new Uint8Array(v.buffer), hf: anyHf ? new Uint8Array(hf.buffer) : null };
 }
-function unpackSamples(dtU8, dbU8) {
+function unpackSamples(dtU8, dbU8, hfU8) {
   const dv = new DataView(dtU8.buffer, dtU8.byteOffset, dtU8.byteLength);
   const v = new Int8Array(dbU8.buffer, dbU8.byteOffset, dbU8.byteLength);
+  const hv = hfU8 ? new Int8Array(hfU8.buffer, hfU8.byteOffset, hfU8.byteLength) : null;
   const n = Math.min(v.length, Math.floor(dtU8.byteLength / 2));
   const out = [];
   let t = 0;
-  for (let i = 0; i < n; i++) { t += dv.getUint16(i * 2, true); out.push({ t, db: v[i] }); }
+  for (let i = 0; i < n; i++) {
+    t += dv.getUint16(i * 2, true);
+    const p = { t, db: v[i] };
+    if (hv && i < hv.length && hv[i] !== -128) p.hf = hv[i];
+    out.push(p);
+  }
   return out;
 }
 const nightRef = id => cloud.f.doc(cloud.fs, 'users', cloud.user.uid, 'nights', String(id));
@@ -1699,11 +2588,15 @@ async function syncNow() {
       if (typeof d.id !== 'number' || pendingDel.has(d.id) || !d.dt || !d.db) continue;
       const cur = await getSession(d.id);
       if (cur && (cur.updatedAt || cur.id) >= (d.updatedAt || 0)) continue;
-      const smp = unpackSamples(d.dt.toUint8Array(), d.db.toUint8Array());
+      const smp = unpackSamples(d.dt.toUint8Array(), d.db.toUint8Array(), d.hf && d.hf.toUint8Array ? d.hf.toUint8Array() : null);
+      // 以前の版のアプリが送り直した夜には種類の数値がないので、この端末の値を残す
+      if (!d.hf && cur && cur.samples && cur.samples.length === smp.length) cur.samples.forEach((p, i) => { if (p.hf != null && smp[i].t === p.t) smp[i].hf = p.hf; });
+      if (!Array.isArray(d.pauses) && cur && cur.pauses && cur.pauses.length) d.pauses = cur.pauses;
       const thr = typeof d.threshold === 'number' ? d.threshold : -35;
-      const s = Object.assign(cur || { blob: null, audioDeleted: true, keepAudio: false }, {
+      const s = Object.assign(cur || { parts: [], keepAudio: false }, {
         id: d.id, start: d.start, threshold: thr, samples: smp,
         duration: smp.length ? last(smp).t : 0, events: findEvents(smp, thr),
+        pauses: sanitizePauses(d.pauses), typeScanned: typeof d.typeScanned === 'number' ? d.typeScanned : (cur && cur.typeScanned) || null,
         notes: typeof d.notes === 'string' ? d.notes : '',
         factors: d.factors ? sanitizeFactors(d.factors) : null,
         updatedAt: d.updatedAt || 0, cloudSyncedAt: d.updatedAt || 0
@@ -1719,9 +2612,11 @@ async function syncNow() {
       if ((s.cloudSyncedAt || 0) >= ver || !s.samples || s.samples.length < 2) continue;
       const pk = packSamples(s.samples);
       await withTimeout(f.setDoc(nightRef(s.id), {
-        v: 1, id: s.id, start: s.start, threshold: s.threshold,
+        v: 2, id: s.id, start: s.start, threshold: s.threshold,
         notes: s.notes || '', factors: s.factors ? sanitizeFactors(s.factors) : null,
+        pauses: sanitizePauses(s.pauses), typeScanned: s.typeScanned || null,
         updatedAt: ver, dt: f.Bytes.fromUint8Array(pk.dt), db: f.Bytes.fromUint8Array(pk.db),
+        hf: pk.hf ? f.Bytes.fromUint8Array(pk.hf) : null,
         syncedAt: f.serverTimestamp()
       }), 30000);
       // 送っている間に直された夜は、次の回にもう一度送る
@@ -1765,13 +2660,34 @@ $('tabAna').addEventListener('click', () => showTab('ana'));
 /* ---------- 画面の状態 ---------- */
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'visible') {
-    if (recording() && !wakeLock) await requestWakeLock();
+    if (rec.on) {
+      if (!rec.paused) {
+        // 画面ロックや電話で止められていたら、続きを録れるようにする
+        if (rec.actx && rec.actx.state !== 'running' && rec.actx.state !== 'closed') rec.actx.resume().catch(() => {});
+        const tr = rec.stream && rec.stream.getAudioTracks()[0];
+        if (tr && tr.readyState === 'ended') micLost();
+        else if (rec.recorder && rec.recorder.state === 'paused') { try { rec.recorder.resume(); } catch (e) {} }
+      }
+      if (rec.hiddenAt) {
+        const from = rec.hiddenAt, to = Date.now();
+        rec.hiddenAt = null;
+        // 戻ったあとに、止められていたあいだの音がまとめて届くことがあるので、少し待ってから確かめる
+        if (to - from > 60000 && !rec.paused) setTimeout(() => checkHidden(from, to), 3000);
+      }
+      if (!wakeLock) await requestWakeLock();
+      tickUI();
+    }
     startTwinkle();
     scheduleSync(1500);
   } else {
+    if (rec.on && !rec.paused) {
+      rec.hiddenAt = Date.now();
+      saveCheckpoint();
+    }
     stopTwinkle();
   }
 });
+addEventListener('pagehide', () => { if (rec.on) saveCheckpoint(); });
 addEventListener('beforeunload', e => {
   if (recording()) { e.preventDefault(); e.returnValue = ''; }
 });
@@ -1799,7 +2715,11 @@ addEventListener('resize', () => {
   } catch (e) {
     setStatus('この端末では記録を保存できません。プライベートブラウズを解除してお試しください。', true);
   }
-  if (db) await pruneAudio();
+  if (db) {
+    const rn = await recoverPartial();
+    if (rn) setStatus('前回の録音は途中で止まっていました。止まったところまでの数値を「これまでの夜」に保存しました（音声は残っていません）。', true);
+    await pruneAudio();
+  }
   refreshView();
   await loadList();
   updateUsage();
