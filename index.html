@@ -1171,7 +1171,7 @@ $('keepAudio').addEventListener('click', async () => {
 
 /* ---------- 録音から、いびきの種類をあとから調べる ---------- */
 // 種類を調べる機能ができる前の夜のために、いびき候補の部分だけ（最大20回分）を音を出さずに再生して調べる
-const scan = { id: null, done: 0, total: 0, cancel: false, msg: '', msgId: null };
+const scan = { id: null, done: 0, total: 0, cancel: false, msg: '', msgId: null, batch: null, batchMsg: '' };
 const waitEvent = (el, name, ms) => new Promise(res => {
   const tm = setTimeout(() => res(false), ms);
   el.addEventListener(name, () => { clearTimeout(tm); res(true); }, { once: true });
@@ -1193,107 +1193,183 @@ function findSample(d, t) {
   return null;
 }
 
+// いびき候補のうち、長いものから最大20回分を調べる
+const scanPick = s => findEvents(s.samples || [], s.threshold).filter(e => e.n >= 2)
+  .sort((a, b) => b.n - a.n).slice(0, 20).sort((a, b) => a.start - b.start);
+// 音声が残っていて、いびきの種類をまだ調べていない夜
+const needsScan = s => hasAudio(s) && !s.typeScanned && s.samples && s.samples.length > 1 &&
+  nightStats(s).types.known < MIN_TYPED && scanPick(s).length > 0;
+
+// タップの処理の中で、音の準備と最初の再生をしておく（iPhoneは、あとからの再生を止めることがあるため）
+function openScanAudio(firstBlob) {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const au = new Audio();
+  au.preload = 'auto';
+  const src = ctx.createMediaElementSource(au);
+  const an = ctx.createAnalyser();
+  an.fftSize = 2048;
+  an.smoothingTimeConstant = 0;
+  const mute = ctx.createGain();
+  mute.gain.value = 0;
+  src.connect(an); an.connect(mute); mute.connect(ctx.destination);
+  ctx.resume().catch(() => {});
+  const url = URL.createObjectURL(firstBlob);
+  au.src = url;
+  return { ctx, au, an, blob: firstBlob, url, unlock: au.play() || Promise.resolve() };
+}
+function closeScanAudio(env) {
+  try { env.au.pause(); env.au.removeAttribute('src'); env.au.load(); } catch (e) {}
+  if (env.url) URL.revokeObjectURL(env.url);
+  try { env.ctx.close(); } catch (e) {}
+}
+
 function startScan(s) {
-  if (scan.id || recording()) return;
-  const parts = audioParts(s);
-  if (!parts.length) return;
-  const ev = findEvents(s.samples, s.threshold).filter(e => e.n >= 2);
-  const pick = ev.slice().sort((a, b) => b.n - a.n).slice(0, 20).sort((a, b) => a.start - b.start);
+  if (scan.id || recording() || !hasAudio(s)) return;
+  const pick = scanPick(s);
   scan.msg = ''; scan.msgId = null;
   if (!pick.length) {
     s.typeScanned = Date.now();
     refreshView();
     return;
   }
-  // タップの処理の中で、音の準備と最初の再生をしておく（iPhoneは、あとからの再生を止めることがあるため）
-  let ctx, au, an, url;
-  try {
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
-    au = new Audio();
-    au.preload = 'auto';
-    const src = ctx.createMediaElementSource(au);
-    an = ctx.createAnalyser();
-    an.fftSize = 2048;
-    an.smoothingTimeConstant = 0;
-    const mute = ctx.createGain();
-    mute.gain.value = 0;
-    src.connect(an); an.connect(mute); mute.connect(ctx.destination);
-    ctx.resume().catch(() => {});
-    const p0 = partFor(parts, pick[0].start);
-    url = URL.createObjectURL(p0.blob);
-    au.src = url;
-    const unlock = au.play() || Promise.resolve();
-    Object.assign(scan, { id: s.id, done: 0, total: pick.length, cancel: false });
-    refreshView();
-    runScan(s, parts, pick, ctx, au, an, p0, url, unlock)
-      .then(r => r === 'cancel' ? 'やめました。' : r > 0 ? '' : '調べましたが、種類を判定できる音が見つかりませんでした。',
-        err => { console.warn('scan failed', err); return '録音を再生できなかったため、調べられませんでした。もう一度押してください。'; })
-      .then(msg => {
-        try { au.pause(); au.removeAttribute('src'); ctx.close(); } catch (e) {}
-        scan.id = null;
-        scan.msg = msg;
-        scan.msgId = s.id;
-        if (viewing && viewing.id === s.id) refreshView();
-        if (!$('panelAna').hidden) renderAnalysis();
-      });
-  } catch (e) {
-    scan.id = null;
+  let env;
+  try { env = openScanAudio(partFor(audioParts(s), pick[0].start).blob); }
+  catch (e) {
     scan.msg = 'このブラウザでは、録音から調べることができませんでした。';
     scan.msgId = s.id;
     refreshView();
+    return;
   }
+  Object.assign(scan, { id: s.id, done: 0, total: pick.length, cancel: false, batch: null });
+  refreshView();
+  runScan(s, pick, env)
+    .then(r => r === 'cancel' ? 'やめました。' : r > 0 ? '' : '調べましたが、種類を判定できる音が見つかりませんでした。',
+      err => { console.warn('scan failed', err); return '録音を再生できなかったため、調べられませんでした。画面を開いたまま、もう一度押してください。'; })
+    .then(msg => {
+      closeScanAudio(env);
+      scan.id = null;
+      scan.cancel = false;
+      scan.msg = msg;
+      scan.msgId = s.id;
+      if (viewing && viewing.id === s.id) refreshView();
+      if (!$('panelAna').hidden) renderAnalysis();
+      loadList();
+    });
 }
 
-async function runScan(s, parts, pick, ctx, au, an, part, url, unlock) {
+// 分析タブの「音声が残っている夜をまとめて調べる」。対象の夜は分析タブを表示したときに決めておく
+// （iPhoneでは、タップの処理の中ですぐに再生を始める必要があるため）
+let batchTargets = [];
+const batchProgText = () => scan.batch
+  ? `${scan.batch.n}夜のうち${scan.batch.i + 1}夜目を調べています（${scan.done}/${scan.total}）。音は鳴りません。終わるまで、この画面を開いたままにしてください。`
+  : '';
+function updateBatchProgress() {
+  const el = $('batchProg');
+  if (el) el.textContent = batchProgText();
+}
+function startBatchScan() {
+  if (scan.id || recording() || !batchTargets.length) return;
+  const nights = batchTargets.slice();
+  let env;
+  try { env = openScanAudio(partFor(audioParts(nights[0]), scanPick(nights[0])[0].start).blob); }
+  catch (e) {
+    scan.batchMsg = 'このブラウザでは、録音から調べることができませんでした。';
+    renderAnalysis();
+    return;
+  }
+  Object.assign(scan, { cancel: false, msg: '', msgId: null, batchMsg: '', batch: { i: 0, n: nights.length, ok: 0 } });
+  requestWakeLock(); // 調べ終わるまで画面を消さない
+  (async () => {
+    let failed = false;
+    for (let i = 0; i < nights.length && !scan.cancel; i++) {
+      const s = nights[i], pick = scanPick(s);
+      scan.batch.i = i;
+      Object.assign(scan, { id: s.id, done: 0, total: pick.length });
+      updateBatchProgress();
+      try {
+        const r = await runScan(s, pick, env);
+        if (r !== 'cancel') scan.batch.ok++;
+      } catch (err) {
+        console.warn('scan failed', err);
+        failed = true;
+        break;
+      }
+    }
+    const b = scan.batch;
+    closeScanAudio(env);
+    scan.batchMsg = failed ? `${b.ok}夜分を調べたところで止まりました。画面を消したり、ほかのアプリに切り替えたりすると止まります。もう一度押すと、残りの夜を調べます。`
+      : scan.cancel ? `やめました。${b.ok}夜分は調べ終わっていて、結果は残っています。`
+      : `${b.ok}夜分を調べました。`;
+    Object.assign(scan, { id: null, batch: null, cancel: false });
+    if (wakeLock && !recording()) { wakeLock.release().catch(() => {}); wakeLock = null; }
+    // 開いている夜の表示にも、調べた結果を反映する
+    if (viewing) {
+      const fresh = await getSession(viewing.id);
+      if (fresh) Object.assign(viewing, { samples: fresh.samples, typeScanned: fresh.typeScanned, updatedAt: fresh.updatedAt });
+      refreshView();
+    }
+    loadList();
+    if (!$('panelAna').hidden) renderAnalysis();
+  })();
+  renderAnalysis();
+}
+
+async function runScan(s, pick, env) {
+  const { ctx, au, an } = env;
+  const parts = audioParts(s);
   const buf = new Float32Array(an.fftSize), bands = makeSpectrum(ctx.sampleRate);
   const got = [];
-  try {
-    // タップのときに始めた再生が落ち着くのを待ってから止める（先に止めると、あとの再生が取り消される）
-    await unlock.catch(() => {});
-    au.pause();
-    await readyAudio(au);
-    for (let i = 0; i < pick.length && !scan.cancel; i++) {
-      const e = pick[i], p = partFor(parts, e.start);
-      if (p !== part) {
-        URL.revokeObjectURL(url);
-        url = URL.createObjectURL(p.blob);
-        au.src = url;
-        part = p;
-        await readyAudio(au);
-      }
-      const evStart = e.start - 1 - p.t0;                    // この録音の中での、いびき候補の始まり（秒）
-      const evEnd = Math.min(e.end, e.start + 3) - p.t0;      // 長いものは最初の3秒だけ
-      if (evEnd <= 0) continue;
-      au.currentTime = Math.max(0, evStart - .8);             // 少し前から聞いて、静かなときの音も測る
-      await waitEvent(au, 'seeked', 8000);
-      try { await au.play(); }
-      catch (err) { if (err && err.name === 'AbortError') await au.play(); else throw err; }
-      await new Promise(res => {
-        const began = performance.now();
-        const iv = setInterval(() => {
-          const x = au.currentTime;
-          an.getFloatTimeDomainData(buf);
-          const [lo, hi] = bands(buf, 0);
-          got.push({ t: p.t0 + Math.ceil(x), db: rmsDb(buf), lo, hi, pre: x < evStart });
-          if (x >= evEnd || au.ended || scan.cancel || performance.now() - began > 8000) { clearInterval(iv); res(); }
-        }, 50);
-      });
-      au.pause();
-      scan.done = i + 1;
-      if (viewing && viewing.id === s.id && !$('panelRec').hidden) renderTypeBox(nightStats(viewing), false);
+  // タップのときに始めた再生が落ち着くのを待ってから止める（先に止めると、あとの再生が取り消される）
+  await env.unlock.catch(() => {});
+  env.unlock = Promise.resolve();
+  au.pause();
+  await readyAudio(au);
+  for (let i = 0; i < pick.length && !scan.cancel; i++) {
+    const e = pick[i], p = partFor(parts, e.start);
+    if (p.blob !== env.blob) {
+      URL.revokeObjectURL(env.url);
+      env.url = URL.createObjectURL(p.blob);
+      env.blob = p.blob;
+      au.src = env.url;
+      await readyAudio(au);
     }
-  } finally {
-    URL.revokeObjectURL(url);
+    const evStart = e.start - 1 - p.t0;                    // この録音の中での、いびき候補の始まり（秒）
+    const evEnd = Math.min(e.end, e.start + 3) - p.t0;      // 長いものは最初の3秒だけ
+    if (evEnd <= 0) continue;
+    au.currentTime = Math.max(0, evStart - .8);             // 少し前から聞いて、静かなときの音も測る
+    await waitEvent(au, 'seeked', 8000);
+    try { await au.play(); }
+    catch (err) { if (err && err.name === 'AbortError') await au.play(); else throw err; }
+    let hidden = false;
+    await new Promise(res => {
+      const began = performance.now();
+      const iv = setInterval(() => {
+        // 画面が消えると再生が止まり、正しく測れないので、そこで止める
+        if (document.hidden) { hidden = true; clearInterval(iv); res(); return; }
+        const x = au.currentTime;
+        an.getFloatTimeDomainData(buf);
+        const [lo, hi] = bands(buf, 0);
+        got.push({ t: p.t0 + Math.ceil(x), db: rmsDb(buf), lo, hi, pre: x < evStart });
+        if (x >= evEnd || au.ended || scan.cancel || performance.now() - began > 8000) { clearInterval(iv); res(); }
+      }, 50);
+    });
+    au.pause();
+    if (hidden) throw new Error('hidden');
+    scan.done = i + 1;
+    if (viewing && viewing.id === s.id && !$('panelRec').hidden) renderTypeBox(nightStats(viewing), false);
+    updateBatchProgress();
   }
   if (scan.cancel) return 'cancel';
 
+  // 実際に音が出ていた瞬間だけを使う（再生が止まっていたときの無音は除く）
+  const live = got.filter(f => f.db > -85);
   // 静かなときの音：いびき候補の直前で、いちばん静かだった音（2割）の平均
-  const pre = got.filter(f => f.pre).sort((a, b) => a.db - b.db);
+  const pre = live.filter(f => f.pre).sort((a, b) => a.db - b.db);
   const q = pre.slice(0, Math.max(1, Math.ceil(pre.length * .2)));
   const nlo = q.length ? mean(q.map(f => f.lo)) : 0, nhi = q.length ? mean(q.map(f => f.hi)) : 0;
   // 1秒ごとに、いちばん大きかった瞬間の音で比を出す（録音中に調べるときと同じ）
   const best = new Map();
-  for (const f of got) if (!f.pre) { const b = best.get(f.t); if (!b || f.db > b.db) best.set(f.t, f); }
+  for (const f of live) if (!f.pre) { const b = best.get(f.t); if (!b || f.db > b.db) best.set(f.t, f); }
   let n = 0;
   for (const [t, f] of best) {
     const smp = findSample(s.samples, t);
@@ -2198,17 +2274,32 @@ const GA_HINT = {
   alcohol: 'お酒でのどや舌の筋肉がゆるむと、口が開きやすくなります。'
 };
 
+// まとめて調べるボタン（調べている途中は進みぐあいとやめるボタン）
+function batchBlock() {
+  if (scan.batch) {
+    return h('div', { class: 'notice' },
+      h('p', { id: 'batchProg', 'aria-live': 'polite' }, batchProgText()),
+      h('div', { class: 'data-actions' }, h('button', { type: 'button', class: 'ghost', onclick: () => { scan.cancel = true; } }, 'やめる')));
+  }
+  const msg = scan.batchMsg ? h('p', { class: 'hint' }, scan.batchMsg) : null;
+  if (!batchTargets.length) return msg;
+  const evs = batchTargets.reduce((a, s) => a + scanPick(s).length, 0);
+  const min = Math.max(1, Math.round(evs * 4 / 60));
+  return h('div', { class: 'notice' },
+    h('p', null, `音声が残っていて、いびきの種類をまだ調べていない夜が${batchTargets.length}夜あります。`),
+    h('div', { class: 'data-actions' }, h('button', { type: 'button', class: 'ghost', disabled: !!scan.id || recording(), onclick: startBatchScan }, '音声が残っている夜をまとめて調べる')),
+    h('p', { class: 'hint' }, `全部でおよそ${min}分かかります。音は鳴りません。調べているあいだは、この画面を開いたままにしてください（画面は自動では消えないようにします）。途中でやめても、調べ終わった夜の結果は残ります。`),
+    msg);
+}
+
 function typeSection(valid) {
   const sec = h('section', null, h('h2', null, 'いびきの種類'));
   const typed = valid.filter(n => n.st.types.known >= MIN_TYPED);
   const explain = (order, mark) => h('ul', { class: 'tips' }, order.map((k, i) =>
     h('li', { class: mark && i === 0 ? (k === 'ga' ? 'mine' : 'good') : '' }, h('b', null, TYPE_TEXT[k].title), h('p', null, TYPE_TEXT[k].what + TYPE_TEXT[k].tip))));
-  const unscanned = valid.filter(n => n.st.types.known < MIN_TYPED && hasAudio(n.s) && !n.s.typeScanned).length;
 
   if (!typed.length) {
-    sec.append(h('p', { class: 'hint' }, unscanned
-      ? `いびきの音が「ガー型」か「ズー型」かを調べられます。これから録音する夜は自動で調べます。音声が残っている夜（${unscanned}夜）は、「録音」タブでその夜を開き、「録音から調べる」を押すと調べられます。`
-      : 'いびきの音が「ガー型」か「ズー型」かを、これから録音する夜から自動で調べます。'));
+    sec.append(h('p', { class: 'hint' }, 'いびきの音が「ガー型」か「ズー型」かを、これから録音する夜は自動で調べます。'), batchBlock());
     sec.append(explain(['ga', 'zu'], false));
     return sec;
   }
@@ -2220,8 +2311,7 @@ function typeSection(valid) {
   sec.append(h('p', { class: 'lead' }, `${typed.length}夜分のいびきでは、`,
     v === 'both' ? 'ガー型とズー型の両方が出ています。'
       : [h('b', { style: v === 'zu' ? 'color:var(--star)' : null }, TYPE_INFO[v].name), `（${TYPE_INFO[v].desc}）が多めです。`]),
-    typeBar(sh), typeLegend(sh));
-  if (unscanned) sec.append(h('p', { class: 'hint' }, `種類をまだ調べていない夜が${unscanned}夜あります。「録音」タブでその夜を開き、「録音から調べる」を押すと調べられます。`));
+    typeBar(sh), typeLegend(sh), batchBlock());
 
   const shown = typed.slice(-14);
   sec.append(barChart(shown.map(n => {
@@ -2279,6 +2369,7 @@ async function renderAnalysis() {
   const nights = all.map(s => ({ s, st: nightStats(s) })).sort((a, b) => a.s.start - b.s.start);
   const valid = nights.filter(n => n.st.valid);
   const shortN = nights.length - valid.length;
+  batchTargets = nights.filter(n => needsScan(n.s)).map(n => n.s);
   const out = [];
 
   // はじめに
@@ -2289,6 +2380,7 @@ async function renderAnalysis() {
       shortN ? h('p', { class: 'hint' }, `2時間未満の記録が${shortN}件ありますが、テストや昼寝の可能性があるため分析には含めていません。`) : null
     );
     out.push(intro);
+    if (batchTargets.length || scan.batch || scan.batchMsg) out.push(typeSection(valid));
   } else {
     const recent = valid.slice(-7), prev = valid.slice(-14, -7);
     const rAvg = mean(recent.map(n => n.st.ratio));
